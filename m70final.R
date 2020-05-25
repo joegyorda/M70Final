@@ -1,4 +1,5 @@
 # Data is five years from 2013-2018 highs, lows, opens, names
+# tidyverse, dplyr needed for data cleaning
 require(dplyr)
 require(tidyverse)
 require(lubridate)
@@ -6,7 +7,10 @@ require(lubridate)
 ################  Main  ################
 
 main = function(model=1,capital=100000){
-  d = parse.data("/Users/student/Downloads/sandp500/all_stocks_5yr.csv")
+  setwd("/Users/osmankhan/Desktop/20S/MATH070")
+  findat <- read.csv("all_stocks_5yr.csv")
+  
+  d = parse.data("all_stocks_5yr.csv")
   cross_val(model=model,d,capital)
   
 }
@@ -17,7 +21,7 @@ parse.data = function(path){
   ### Read CSV
   findat <- read.csv(path)
   
-  ### Truncate Data
+  ### Truncate Data, just for initial time-consumption purposes, should be on all data
   findat$date = as.POSIXct(findat$date)
   findat_trunc = findat[1:50000,]
   
@@ -69,10 +73,19 @@ cross_val = function(model=1, d, capital){
       # Change in stock price
       change = (d %>% select(format(ends.train[i])) - d %>% select(format(starts.train[i+1]))) / (d %>% select(format(ends.train[i]))) 
       # Save return
-      returnf[,i] = bought * change
+      print("HEY")
+      print(class(returnf))
+      print(class(bought * change))
+      print(bought * change)
+      
+      #avector <- as.vector((bought * change))
+      #class(avector) 
+      
+      
+      returnf[,i] <- (bought * change)[[1]]
     }
     print(returnf)
-      
+    
   }
   
   #Train on 6 months, test on 6 months, redistribute at 3 months
@@ -81,7 +94,7 @@ cross_val = function(model=1, d, capital){
     ends.train = seq(seq(first, by="6 months", length.out=2)[2], by="1 year",length.out=5)
     mids.test = seq(seq(first, by="9 months", length.out=2)[2], by="1 year",length.out=5)
     
-   
+    
   }
   
   #Train only on first six months, test on increasing intervals of time
@@ -127,4 +140,7 @@ hclust.portfolio = function(d, method="average") {
   return(allocs)
 }
 
-#View(hclust.portfolio(res[,2:ncol(res)]))
+###View(hclust.portfolio(res[,2:ncol(res)]))
+main()
+
+
