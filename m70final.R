@@ -3,14 +3,13 @@
 require(dplyr)
 require(tidyverse)
 require(lubridate)
+require(bizdays)
+require(RQuantLib)
 
 ################  Main  ################
 
 main = function(model=1,capital=100000){
-  setwd("/Users/osmankhan/Desktop/20S/MATH070")
-  findat <- read.csv("all_stocks_5yr.csv")
-  
-  d = parse.data("all_stocks_5yr.csv")
+  d = parse.data("/Users/student/Downloads/sandp500/all_stocks_5yr.csv")
   cross_val(model=model,d,capital)
   
 }
@@ -23,7 +22,7 @@ parse.data = function(path){
   
   ### Truncate Data, just for initial time-consumption purposes, should be on all data
   findat$date = as.POSIXct(findat$date)
-  findat_trunc = findat[1:50000,]
+  findat_trunc = findat
   
   ### Reformat Data
   findat_trunc$open
@@ -39,32 +38,29 @@ parse.data = function(path){
 }
 
 cross_val = function(model=1, d, capital){
+  capital=100000
   #First start date for training
   first = ymd(names(d)[2])
   #Determine last start date for training 
-  last = ymd(names(d)[nrow(d)])-months(6)
-  #Default to friday if weekend
-  if((wday(last))==7){last = last - ddays(1)} else 
-    if((wday(last))==1){last =  last - ddays(2)}
+  last = ymd(names(d)[ncol(d)])-months(6)
+
+  #Load biz calendar
+  load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first, to=last)
   
   #Train on 6 months, test on 6 months, no redistribution
   if(model==1){
-    # Start dates for training (also end dates for testing)
-    starts.train = seq(from=first, to=last, by="day")
-    # Delete if weekend
-    starts.train <- starts.train[!wday(starts.train)==7 & !wday(starts.train)==1]
+    
+    # Start dates for training (also end dates for testing) using biz days of NYSE
+    starts.train = bizseq(from=first, to=last,'QuantLib/UnitedStates/NYSE')
     
     # End dates for training (also start dates for testing)
-    # Add 6 months to start date
+    # Add 6 months to start date, round to nearest NYSE business day
     ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
-    # If weekend, default to friday
-    ends.train[wday(ends.train)==7]<-ends.train[wday(ends.train)==7] - ddays(1)
-    ends.train[wday(ends.train)==1]<-ends.train[wday(ends.train)==1] - ddays(2)
+    ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
     
     # Matrix of returns by stock by training set (6 month period)
     size= length(starts.train)*nrow(d)
     returnf = matrix(rep(0,size), nrow=nrow(d))
-    print(returnf)
     for(i in 1:length(starts.train)){
       # Determine weights
       weights.clust = hclust.portfolio(d %>% select(format(starts.train[i]):format(ends.train[i])))
@@ -73,15 +69,6 @@ cross_val = function(model=1, d, capital){
       # Change in stock price
       change = (d %>% select(format(ends.train[i])) - d %>% select(format(starts.train[i+1]))) / (d %>% select(format(ends.train[i]))) 
       # Save return
-      print("HEY")
-      print(class(returnf))
-      print(class(bought * change))
-      print(bought * change)
-      
-      #avector <- as.vector((bought * change))
-      #class(avector) 
-      
-      
       returnf[,i] <- (bought * change)[[1]]
     }
     print(returnf)
