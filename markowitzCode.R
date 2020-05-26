@@ -5,7 +5,7 @@ all=as.data.frame(matrix(NA,ncol=ns,nrow=10000))
 names(all)=symb
 min.ni=10000
 for(i in 1:ns) {
-  tabi=read.csv(paste("/users/josephgyorda/desktop/StatBook/stocks/",symb[1],".csv",sep=""),stringsAsFactors=F)
+  tabi=read.csv(paste("/users/josephgyorda/desktop/StatBook/stocks/",symb[i],".csv",sep=""),stringsAsFactors=F)
   ni=nrow(tabi)
   if(min.ni>ni) min.ni=ni
   all[1:ni,i]=tabi[,7]
