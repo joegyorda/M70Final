@@ -11,7 +11,6 @@ for(i in 1:ns) {
   all[1:ni,i]=tabi[,7]
 }
 all = all[seq(from=min.ni,to=1,by=-1),]        # adj closing price for each stock
-data = log(all)
 
 markBullet = function(data) {
   data = log(data)      # log transform data (assume was not transformed already)
@@ -61,21 +60,5 @@ markBullet = function(data) {
 
 optimal_weights = markBullet(all)
 cat("Optimal weight vector: ", optimal_weights)
-
-
-
-
-
-# hierarchical clustering test code
-weights = hclust.portfolio(data)
-weights = rbind(symb, weights)
-weights
-
-#hclust_avg = hclust(d, method="average")
-#plot(hclust_avg)
-
-
-
-
 
 
