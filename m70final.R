@@ -45,7 +45,7 @@ cross_val = function(model=1, d, capital){
   last = ymd(names(d)[ncol(d)])-months(6)
 
   #Load biz calendar
-  load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first, to=last)
+  load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first, to=last+year(1))
   
   #Train on 6 months, test on 6 months, no redistribution
   if(model==1){
