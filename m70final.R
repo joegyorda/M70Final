@@ -43,9 +43,10 @@ cross_val = function(model=1, d, capital){
   first = ymd(names(d)[2])
   #Determine last start date for training 
   last = ymd(names(d)[ncol(d)])-months(6)
+  callast = last + years(2)
 
   #Load biz calendar
-  load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first, to=last+year(1))
+  load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first, to=callast)
   
   #Train on 6 months, test on 6 months, no redistribution
   if(model==1){
@@ -58,6 +59,10 @@ cross_val = function(model=1, d, capital){
     ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
     ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
     
+    starts.test = ends.train
+    ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
+    ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
+    
     # Matrix of returns by stock by training set (6 month period)
     size= length(starts.train)*nrow(d)
     returnf = matrix(rep(0,size), nrow=nrow(d))
@@ -67,7 +72,7 @@ cross_val = function(model=1, d, capital){
       # Determine how much of each stock we buy
       bought = weights.clust*capital
       # Change in stock price
-      change = (d %>% select(format(ends.train[i])) - d %>% select(format(starts.train[i+1]))) / (d %>% select(format(ends.train[i]))) 
+      change = (d %>% select(format(starts.test[i])) - d %>% select(format(ends.test[i]))) / (d %>% select(format(starts.test[i]))) 
       # Save return
       returnf[,i] <- (bought * change)[[1]]
     }
