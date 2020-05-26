@@ -9,7 +9,9 @@ require(RQuantLib)
 ################  Main  ################
 
 main = function(model=1,capital=100000){
-  d = parse.data("/Users/student/Downloads/sandp500/all_stocks_5yr.csv")
+  setwd("/Users/osmankhan/Desktop/20S/MATH070")
+  d = parse.data("all_stocks_5yr.csv")
+  
   cross_val(model=model,d,capital)
   
 }
@@ -42,9 +44,9 @@ cross_val = function(model=1, d, capital){
   #First start date for training
   first = ymd(names(d)[2])
   #Determine last start date for training 
-  last = ymd(names(d)[ncol(d)])-months(6)
+  last = ymd(names(d)[ncol(d)])-months(12)
   callast = last + years(2)
-
+  
   #Load biz calendar
   load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first, to=callast)
   
@@ -66,17 +68,33 @@ cross_val = function(model=1, d, capital){
     # Matrix of returns by stock by training set (6 month period)
     size= length(starts.train)*nrow(d)
     returnf = matrix(rep(0,size), nrow=nrow(d))
-    for(i in 1:length(starts.train)){
+    for(i in 1:(length(starts.train))){
+      
       # Determine weights
-      weights.clust = hclust.portfolio(d %>% select(format(starts.train[i]):format(ends.train[i])))
+      weights.clust = hclust.portfolio(d %>% 
+                                         select(format(starts.train[i]):format(ends.train[i])))
       # Determine how much of each stock we buy
+      
       bought = weights.clust*capital
       # Change in stock price
-      change = (d %>% select(format(starts.test[i])) - d %>% select(format(ends.test[i]))) / (d %>% select(format(starts.test[i]))) 
+
+      #print(ends.test[i])
+      old_price = d %>% select(format(starts.test[i]))
+      
+
+      new_price = d %>% select(format(ends.test[i]))
+      
+      z = d %>% select(format(starts.test[i]))
+      
+      change = (old_price - new_price) / (old_price) 
+      
       # Save return
+      #print((bought * change)[[1]])
       returnf[,i] <- (bought * change)[[1]]
+
     }
-    print(returnf)
+    View(returnf[ , (length(returnf[1,])-10):length(returnf[1,])])
+    
     
   }
   
@@ -134,5 +152,3 @@ hclust.portfolio = function(d, method="average") {
 
 ###View(hclust.portfolio(res[,2:ncol(res)]))
 main()
-
-
