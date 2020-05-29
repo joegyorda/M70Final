@@ -5,7 +5,7 @@ require(dplyr)
 require(tidyverse)
 require(lubridate)
 require(bizdays)
-# source("markowitzCode.R")
+source("markowitzCode.R")
 
 
 ################  Main  ################
@@ -48,32 +48,45 @@ cross_val = function(backtest=1, d, capital){
   #Load biz calendar
   load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first, to=callast)
 
+  starts.train = first
+  ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
+  ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
+  starts.test = ends.train
+  ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
+  ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
+  
+  print(starts.train)
+  print(ends.train)
+  print(starts.test)
+  print(ends.test)
+  
+  weights = calc.weights(starts.train,ends.train,d)
+  print("weights")
+  print(weights)
+  returns = calc.return(starts.test,ends.test,weights, capital, 0)
+  
+  
   
   #Train on 6 months, test on 6 months, no redistribution
-  if(backtest==1){
+  #if(backtest==1){
 
     # Start dates for training (also end dates for testing) using biz days of NYSE
-    starts.train = bizseq(from=first, to=last,'QuantLib/UnitedStates/NYSE')
+    #starts.train = bizseq(from=first, to=last,'QuantLib/UnitedStates/NYSE')
     
     # End dates for training (also start dates for testing)
     # Add 6 months to start date, round to nearest NYSE business day
-    ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
-    ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
+    #ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
+    #ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
     
-    starts.test = ends.train
-    ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
-    ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
+    #starts.test = ends.train
+    #ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
+    #ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
     
-    returns = c()
-    for(i in 1:(length(starts.train))){
+    #returns = c()
+    #for(i in 1:(length(starts.train))){
 
-    }
-  }
-
-  if(backtest==3){
-    
-  }
-
+    #}
+  #}
 
 }
 
@@ -104,21 +117,27 @@ calc.return = function(start,end,weights,capital,realloc){
   # get start price
   old_price = d %>% select(format(start))
   # number of days per time period
-  numDays = (end-start)/realloc
+  if(realloc !=0 ){numDays = (end-start)/realloc}
+    
   
   for(i in 0:realloc){
     # Stock bought for time period
     bought = weights*capital
     
     # Find end of time period
-    mid = add_with_rollback(starts.test, days(numDays), roll_to_first = TRUE)
-    mid = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
+    if(realloc !=0 ){
+      mid = add_with_rollback(starts.test, days(numDays), roll_to_first = TRUE)
+      mid = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
+    }
+    else{
+      mid=end
+    }
 
     # Ending prices for time period
     new_price = d %>% select(format(mid))
     
     # Change in stock prices for time period
-    change = (old_price - mid_price)/old_price
+    change = (old_price - new_price)/old_price
     
     # Returns for time period
     # Make sure change is a column vector - stocks as rows 
@@ -129,7 +148,6 @@ calc.return = function(start,end,weights,capital,realloc){
     
     # New prices
     old_price = new_price
-    
   }
   return(capital)
 }
