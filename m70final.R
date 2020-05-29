@@ -64,6 +64,10 @@ cross_val = function(backtest=1, d, capital){
   print("weights")
   print(weights)
   returns = calc.return(starts.test,ends.test,weights, capital, 0)
+  print("returns")
+  print(returns)
+  print("returns - initial capital")
+  print(returns - capital)
   
   
   
@@ -99,11 +103,15 @@ calc.weights = function(start, end, d, returnLow=0, returnHigh=0){
   # Including intervalPortfolio
   #weights = matrix(rep(0,3*nrow(d)),nrow=3)
   # Not inclduing interval portfolio
-  weights = matrix(rep(0,2*nrow(d)),nrow=2)
   
-  weights[1,] = hclust.portfolio(d %>% select(format(starts.train[i]):format(ends.train[i])))
-  weights[2,] = markBullet(d %>% select(format(starts.train[i]):format(ends.train[i])))
-  #weights[3,] = intervalPortfolio(d %>% select(format(starts.train[i]):format(ends.train[i])), r=returnLow, R=returnHigh)
+  weights = matrix(rep(0,2*nrow(d)),ncol=nrow(d))
+  
+  print(dim(weights))
+  
+ 
+  weights[1,] = hclust.portfolio(d %>% select(format(start):format(end)))
+  weights[2,] = markBullet(d %>% select(format(start):format(end)))
+  #weights[3,] = intervalPortfolio(d %>% select(format(start):format(end)), r=returnLow, R=returnHigh)
   return(weights)
 }
 
