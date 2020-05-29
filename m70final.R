@@ -106,9 +106,11 @@ calc.weights = function(start, end, d, returnLow=0, returnHigh=0){
   
   weights = matrix(rep(0,2*nrow(d)),ncol=nrow(d))
   
-  print(dim(weights))
-  
- 
+  #print(dim(weights))
+  #print(dim(d %>% select(format(start):format(end))))
+  #print(dim(as.matrix(hclust.portfolio(d %>% select(format(start):format(end))))))
+  View(d %>% select(format(start):format(end)))
+  print(hclust.portfolio(d %>% select(format(start):format(end))))
   weights[1,] = hclust.portfolio(d %>% select(format(start):format(end)))
   weights[2,] = markBullet(d %>% select(format(start):format(end)))
   #weights[3,] = intervalPortfolio(d %>% select(format(start):format(end)), r=returnLow, R=returnHigh)
