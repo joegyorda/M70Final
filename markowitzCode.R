@@ -1,3 +1,6 @@
+library(pracma)
+
+# source("m70final.R")
 # X = parse.data("all_stocks_5yr.csv")
 # markBullet(X, plotting=T)
 
@@ -63,7 +66,12 @@ markBullet = function(data, plotting=F) {
   ret.mat = get.ret.mat(data)
   mu = rowMeans(ret.mat)
   omega = cor(t(ret.mat))
-  omega.inv = solve(omega)
+  omega.inv = tryCatch({
+    solve(omega)
+  }, error = function(e) {
+    print("Using pinv")
+    pinv(omega)
+  })
 
   one = matrix(1, nrow=nrow(data))               # column vector of all 1's
 
