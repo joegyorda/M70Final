@@ -7,6 +7,7 @@ require(lubridate)
 require(bizdays)
 # source("markowitzCode.R")
 
+
 ################  Main  ################
 
 main = function(backtest=1,capital=100000){
@@ -38,7 +39,6 @@ parse.data = function(path){
 }
 
 cross_val = function(model=hclust.portfolio, backtest=1, d, capital){
-  capital=100000
   #First start date for training
   first = ymd(names(d)[2])
   #Determine last start date for training
@@ -48,29 +48,36 @@ cross_val = function(model=hclust.portfolio, backtest=1, d, capital){
   #Load biz calendar
   load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first, to=callast)
 
+  
   #Train on 6 months, test on 6 months, no redistribution
-  if(backtest==1){
+  if(backtest==1 | backtest==2){
 
     # Start dates for training (also end dates for testing) using biz days of NYSE
     starts.train = bizseq(from=first, to=last,'QuantLib/UnitedStates/NYSE')
-
+    
     # End dates for training (also start dates for testing)
     # Add 6 months to start date, round to nearest NYSE business day
     ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
     ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
-
+    
     starts.test = ends.train
     ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
     ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
-
+    
+    #Train on 6 months, test on 6 months, redistribute at 3 months
+    if(backtest==2){
+      mids.test = add_with_rollback(starts.test, months(3), roll_to_first = TRUE)
+      mids.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
+    }
+    
     # Matrix of returns by stock by training set (6 month period)
     size= length(starts.train)*nrow(d)
-    returnf = matrix(rep(0,size), nrow=nrow(d))
+    #returnf = matrix(rep(0,size), nrow=nrow(d))
+    returnf = c()
     for(i in 1:(length(starts.train))){
 
       # Determine weights
-      weights.clust = model(d %>%
-                                         select(format(starts.train[i]):format(ends.train[i])))
+      weights.clust = model(d %>% select(format(starts.train[i]):format(ends.train[i])))
       # Determine how much of each stock we buy
 
       bought = weights.clust*capital
@@ -79,28 +86,22 @@ cross_val = function(model=hclust.portfolio, backtest=1, d, capital){
       #print(ends.test[i])
       old_price = d %>% select(format(starts.test[i]))
       new_price = d %>% select(format(ends.test[i]))
-
-      z = d %>% select(format(starts.test[i]))
-
-      change = (old_price - new_price) / (old_price)
-
-      # Save return
-      #print((bought * change)[[1]])
-      returnf[,i] <- (bought * change)[[1]]
-
+      if(backtest==1){ 
+        change = (new_price - old_price) / (old_price)
+        returnf=  c(returnf,(sum((bought * change)[[1]]))/capital)
+      }
+      
+      if(backtest==2){
+        mid_price = d %>% select(format(mids.test[i]))
+        mid_change = (old_price - mid_price)/old_price
+        mid_bought = weights.clust*sum((bought * mid_change)[[1]])
+        
+        change = (new_price - mid_price)/mid_price
+        returnf=  c(returnf,(sum((mid_bought * mid_change)[[1]]))/capital)
+      }
+      #returnf[,i] <- (bought * change)[[1]]
     }
-    View(returnf[ , (length(returnf[1,])-10):length(returnf[1,])])
-
-
-  }
-
-  #Train on 6 months, test on 6 months, redistribute at 3 months
-  if(backtest==2){
-    starts.train = seq(first, by="1 year", length.out=6)
-    ends.train = seq(seq(first, by="6 months", length.out=2)[2], by="1 year",length.out=5)
-    mids.test = seq(seq(first, by="9 months", length.out=2)[2], by="1 year",length.out=5)
-
-
+    #View(returnf[ , (length(returnf[1,])-10):length(returnf[1,])])
   }
 
   #Train only on first six months, test on increasing intervals of time
