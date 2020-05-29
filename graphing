@@ -1,0 +1,41 @@
+graphing <- function(dates, int_port_returns,
+                     hca_returns, bullet_returns,cap) {
+  
+  dat_df <- data.frame(cbind(dates, int_port_returns, hca_returns, dates))
+  
+  colors <- c("Interval Portfolio" = "#58508d", "HCA" = "#ffa600", "Markowitz Bullet" = "#bc5090")
+  
+  return_plt <- ggplot() +
+    geom_line(data = dat_df, aes(x = dates, y = int_port_returns, color = "Interval Portfolio")) + geom_point() +
+    geom_line(data = dat_df, aes(x = dates, y = hca_returns, color = "HCA")) + geom_point() +
+    geom_line(data = dat_df, aes(x = dates, y = bullet_returns, color = "Markowitz Bullet")) + geom_point() +
+    labs(y = "Returns", x = "Dates", col = "Model", title = "Model Performance on 2013-2018 Stock Prices")+
+    theme_light() +  scale_color_manual(values = colors)
+  
+  
+    final_rets <- c(int_port_returns[length(int_port_returns)], hca_returns[length(hca_returns)],
+                     bullet_returns[length(bullet_returns)])
+    nms = c("Interval Portfolio", 
+                  "HCA", "Markowitz Bullet")
+    
+    print(paste("At end of final testing period, returns for each model were:/n",
+                nms[1], ": ", final_rets[1],
+                nms[2], ": ", final_rets[2],
+                nms[3], ": ", final_rets[3]))
+    
+    best = c("Best Model", cap)
+    
+    if (int_port_returns[length(int_port_returns)] == max(final_rets)) {best = c("Interval Portfolio", int_port_returns[length(int_port_returns)]/cap)}
+    if (hca_returns[length(hca_returns)] == max(final_rets)) {best = c("Hierarchical Cluster Analysis", hca_returns[length(hca_returns)]/cap)}
+    if (bullet_returns[length(bullet_returns)] == max(final_rets)) {best = c("Markowitz Bullet", bullet_returns[length(bullet_returns)]/cap)}
+    return_plt
+    
+    print(paste("Highest Return at End of Testing Period Was", best[1], "with final ROI of", as.numeric(best[2])*100, "%"))
+    
+    print(paste("Other ROIs were", (final_rets[-which.max(final_rets)] * 100/cap)[1],"%", "for", nms[-which.max(final_rets)][1],"and",
+                "and", (final_rets[-which.max(final_rets)] * 100/cap)[2],"%", "for", nms[-which.max(final_rets)][2]) )
+
+    
+}
+
+graphing(c(1,2,3), c(50, 75, 100), c(25, 50, 75),c(25, 66, 125) , 1000)
