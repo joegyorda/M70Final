@@ -43,6 +43,7 @@ cross_val = function(backtest=1, d, capital){
   first = ymd(names(d)[2])
   #Determine last start date for training
   last = ymd(names(d)[ncol(d)])-months(12)
+  
   callast = last + years(2)
 
   #Load biz calendar
@@ -59,7 +60,7 @@ cross_val = function(backtest=1, d, capital){
     ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
     ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
     
-    #starts.test = ends.train
+    starts.test = ends.train
     ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
     ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
     
@@ -77,6 +78,14 @@ cross_val = function(backtest=1, d, capital){
       returnsDate = calc.return(starts.test[i],ends.test[i],weights, capital, 1)
       returnsRealloc[,i]=returnsDate
     }
+  }
+  if(backtest==2){
+    ends.train = add_with_rollback(first, months(6), roll_to_first = TRUE)
+    ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
+    starts.test = ends.train
+    ends.test = ymd(names(d)[ncol(d)])
+    
+    
   }
 
 }
