@@ -59,7 +59,7 @@ intervalPortfolio = function(X,r,R){
   omega = cor(t(ret.mat))
   omega.inv = inv(omega)
   a = find.a(r,R,mu,omega)
-  w_tilde = omega.inv%*%(a*mu + ((1-a*A)/C)*one)
+  w_tilde = omega.inv%*%(a*mu + ((1-a*A)/C))
   return(w_tilde)
 }
 
