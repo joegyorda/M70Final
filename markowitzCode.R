@@ -9,27 +9,26 @@ library(pracma)
 # gets the matrix of daily returns
 get.ret.mat = function(X) {
   X = X[2:length(X)]
-  first.date = names(X)[1]
-  last.date = names(X)[length(X)]
-  week.seq = seq(ymd(first.date), ymd(last.date), by="1 week")
-  load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first.date, to=last.date)
-  week.seq = adjust.next(week.seq, 'QuantLib/UnitedStates/NYSE')
-  week.seq = as.character(week.seq)
-  X = X[week.seq]
+  # first.date = names(X)[1]
+  # last.date = names(X)[length(X)]
+  # week.seq = seq(ymd(first.date), ymd(last.date), by="1 week")
+  # load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first.date, to=last.date)
+  # week.seq = adjust.next(week.seq, 'QuantLib/UnitedStates/NYSE')
+  # week.seq = as.character(week.seq)
+  # X = X[week.seq]
   X = as.matrix(X)
   ret.mat = (X[,2:dim(X)[2]] - X[,1:dim(X)[2] - 1]) / X[,1:dim(X)[2] - 1]
   return(ret.mat)
 }
 
 # computes generalized inverse based on Jordan decomposition
-ginv = function(X) {
-  n = dim(X)[1]
-  eig = eigen(X, symmetric=T)
-  vals = eig$values
-  vecs = eig$vectors
-  vals[vals!=0] = 1/vals[vals!=0]
-  inv = vecs %*% diag(vals,n,n) %*% t(vecs)
-  return(inv)
+inv = function(omega) {
+  omega.inv = tryCatch({
+    solve(omega)
+  }, error = function(e) {
+    pinv(omega)
+  })
+  return(omega.inv)
 }
 
 # finds the optimal a for interval allocation
@@ -39,11 +38,9 @@ find.a = function(r,R,mu,omega){
     right.side= pnorm((p-a)/sqrt(C*(Q+a^2)))
     return(left.side - right.side)
   }
-  omega.inv = tryCatch({
-    solve(omega)
-  }, error = function(e){
-    pinv(omega)
-  })
+
+  omega.inv = inv(omega)
+
 
   A = as.single(t(mu)%*%omega.inv%*%one)
   B = as.single(t(mu)%*%omega.inv%*%mu)
@@ -62,11 +59,7 @@ intervalPortfolio = function(X,r,R){
   ret.mat = get.ret.mat(X)
   mu = rowMeans(ret.mat)
   omega = cor(t(ret.mat))
-  omega.inv = tryCatch({
-    solve(omega)
-  }, error = function(e) {
-    pinv(omega)
-  })
+  omega.inv = inv(omega)
   a = find.a(r,R,mu,omega)
   w_tilde = omega.inv%*%(a*mu + ((1-a*A)/C)*one)
   return(w_tilde)
@@ -77,11 +70,7 @@ markBullet = function(data, plotting=F) {
   ret.mat = get.ret.mat(data)
   mu = rowMeans(ret.mat)
   omega = cor(t(ret.mat))
-  omega.inv = tryCatch({
-    solve(omega)
-  }, error = function(e) {
-    pinv(omega)
-  })
+  omega.inv = inv(omega)
 
   one = matrix(1, nrow=nrow(data))               # column vector of all 1's
 
