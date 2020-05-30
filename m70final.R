@@ -60,7 +60,7 @@ cross_val = function(backtest=1, d, capital){
     ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
     ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
     
-    #starts.test = ends.train
+    starts.test = ends.train
     ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
     ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
     
@@ -183,46 +183,41 @@ hclust.portfolio = function(d, method="average") {
 
 ################  Graphing Function ################ 
 # ### Takes in end dates of testing periods, returns from each model, and initial capital amount
-graphing <- function(dates, int_port_returns,
+graphing <- function(dates,
                      hca_returns, bullet_returns,cap) {
   
   #one dataframe of all relevant plotting data
-  dat_df <- data.frame(cbind(dates, int_port_returns, hca_returns, dates))
+  dat_df <- data.frame(cbind(dates, hca_returns, dates))
   
   #colors for legend
-  colors <- c("Interval Portfolio" = "#58508d", "HCA" = "#ffa600", "Markowitz Bullet" = "#bc5090")
+  colors <- c("HCA" = "#ffa600", "Markowitz Bullet" = "#bc5090")
   
   
   return_plt <- ggplot() +
-    geom_line(data = dat_df, aes(x = dates, y = int_port_returns, color = "Interval Portfolio")) +
     geom_line(data = dat_df, aes(x = dates, y = hca_returns, color = "HCA")) +
     geom_line(data = dat_df, aes(x = dates, y = bullet_returns, color = "Markowitz Bullet")) +
     labs(y = "Returns", x = "Dates", col = "Model", title = "Model Performance on 2013-2018 Stock Price") +
     theme_classic() + scale_color_manual(values = colors)
   
   
-  final_rets <- c(int_port_returns[length(int_port_returns)], hca_returns[length(hca_returns)],
+  final_rets <-  c(hca_returns[length(hca_returns)],
                   bullet_returns[length(bullet_returns)])
   
-  nms = c("Interval Portfolio", "HCA", "Markowitz Bullet")
+  nms = c("HCA", "Markowitz Bullet")
   
   print(paste("At end of final testing period, returns for each model were  ",
-              nms[1], ": ", final_rets[1],
               nms[2], ": ", final_rets[2],
               nms[3], ": ", final_rets[3]))
   
   best = c("Best Model", cap)
   
-  if (int_port_returns[length(int_port_returns)] == max(final_rets)) {best = c("Interval Portfolio", int_port_returns[length(int_port_returns)]/cap)}
   if (hca_returns[length(hca_returns)] == max(final_rets)) {best = c("Hierarchical Cluster Analysis", hca_returns[length(hca_returns)]/cap)}
   if (bullet_returns[length(bullet_returns)] == max(final_rets)) {best = c("Markowitz Bullet", bullet_returns[length(bullet_returns)]/cap)}
   
   
   print(paste("Highest Return at End of Testing Period Was", best[1], "with final ROI of", as.numeric(best[2])*100, "%"))
   
-  print(paste("Other ROIs were", (final_rets[-which.max(final_rets)] * 100/cap)[1],"%", "for", nms[-which.max(final_rets)][1],"and",
-              "and", (final_rets[-which.max(final_rets)] * 100/cap)[2],"%", "for", nms[-which.max(final_rets)][2]) )
+  print(paste("Other ROIs were", (final_rets[-which.max(final_rets)] * 100/cap)[1],"%", "for", nms[-which.max(final_rets)][1]))
   
   show(return_plt)
 }
-
