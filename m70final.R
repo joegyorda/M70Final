@@ -104,7 +104,7 @@ cross_val = function(backtest=1, d, capital){
 # Start - start of training period - date object
 # End - end of training period - date object
 
-calc.weights = function(start, end, d, returnLow=5000, returnHigh=15000){
+calc.weights = function(start, end, d, returnLow=0.05, returnHigh=0.15){
   # rows are models, columns are stocks
   # Including intervalPortfolio
   weights = matrix(rep(0,3*nrow(d)),nrow=3)
