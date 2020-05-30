@@ -39,7 +39,11 @@ find.a = function(r,R,mu,omega){
     right.side= pnorm((p-a)/sqrt(C*(Q+a^2)))
     return(left.side - right.side)
   }
-  omega.inv = solve(omega)
+  omega.inv = tryCatch({
+    solve(omega)
+  }, error = function(e) {
+    pinv(omega)
+  })
 
   A = as.single(t(mu)%*%omega.inv%*%one)
   B = as.single(t(mu)%*%omega.inv%*%mu)
@@ -61,7 +65,6 @@ intervalPortfolio = function(X,r,R){
   omega.inv = tryCatch({
     solve(omega)
   }, error = function(e) {
-    print("Using pinv")
     pinv(omega)
   })
   a = find.a(r,R,mu,omega)
@@ -77,7 +80,6 @@ markBullet = function(data, plotting=F) {
   omega.inv = tryCatch({
     solve(omega)
   }, error = function(e) {
-    print("Using pinv")
     pinv(omega)
   })
 
