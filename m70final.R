@@ -65,8 +65,8 @@ cross_val = function(backtest=1, d, capital){
     ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
     ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
     
-    returnsNoRealloc = matrix(rep(0,2*length(starts.train)), nrow=2)
-    returnsRealloc = matrix(rep(0,2*length(starts.train)), nrow=2)
+    returnsNoRealloc = matrix(rep(0,3*length(starts.train)), nrow=3)
+    returnsRealloc = matrix(rep(0,3*length(starts.train)), nrow=3)
     for(i in 1:(length(starts.train))){
       
       weights = calc.weights(starts.train[i],ends.train[i],d)
@@ -90,7 +90,7 @@ cross_val = function(backtest=1, d, capital){
     ends.test = ymd(names(d)[ncol(d)])
     
     numReAllocs = 8
-    totalReturns = matrix(rep(0,2*(numReAllocs+1)), nrow=2)
+    totalReturns = matrix(rep(0,3*(numReAllocs+1)), nrow=3)
     weights = calc.weights(first,ends.train,d)
     for(i in 0:numReAllocs){
       returns = calc.return(starts.test,ends.test,weights, capital, i)
@@ -104,16 +104,16 @@ cross_val = function(backtest=1, d, capital){
 # Start - start of training period - date object
 # End - end of training period - date object
 
-calc.weights = function(start, end, d, returnLow=0, returnHigh=0){
+calc.weights = function(start, end, d, returnLow=5000, returnHigh=15000){
   # rows are models, columns are stocks
   # Including intervalPortfolio
-  #weights = matrix(rep(0,3*nrow(d)),nrow=3)
+  weights = matrix(rep(0,3*nrow(d)),nrow=3)
   # Not inclduing interval portfolio
-  weights = matrix(rep(0,2*nrow(d)),ncol=nrow(d))
+  #weights = matrix(rep(0,2*nrow(d)),ncol=nrow(d))
   
   weights[1,] = hclust.portfolio(t(d %>% select(format(start):format(end))))
   weights[2,] = markBullet(d %>% select(format(start):format(end)))
-  #weights[3,] = intervalPortfolio(d %>% select(format(start):format(end)), r=returnLow, R=returnHigh)
+  weights[3,] = intervalPortfolio(d %>% select(format(start):format(end)), r=returnLow, R=returnHigh)
   return(weights)
 }
 
