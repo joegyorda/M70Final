@@ -41,7 +41,7 @@ find.a = function(r,R,mu,omega){
   }
   omega.inv = tryCatch({
     solve(omega)
-  }, error = function(e) {
+  }, error = function(e){
     pinv(omega)
   })
 
