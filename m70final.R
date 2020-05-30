@@ -39,6 +39,7 @@ parse.data = function(path){
 }
 
 cross_val = function(backtest=1, d, capital){
+  d = d[,1:500]
   #First start date for training
   first = ymd(names(d)[2])
   #Determine last start date for training
@@ -79,8 +80,7 @@ cross_val = function(backtest=1, d, capital){
       returnsRealloc[,i]=returns
     }
     
-
-    return(c(returnsNoRealloc,returnsRealloc))
+    graphing(dates = ends.test,hca_returns = returnsNoRealloc[1,],bullet_returns = returnsNoRealloc[2,],cap=capital)
   }
 
   if(backtest==2){
@@ -89,9 +89,6 @@ cross_val = function(backtest=1, d, capital){
     starts.test = ends.train
     ends.test = ymd(names(d)[ncol(d)])
     
-    print(starts.test)
-    print(ends.test)
-    
     numReAllocs = 8
     totalReturns = matrix(rep(0,2*(numReAllocs+1)), nrow=2)
     weights = calc.weights(first,ends.train,d)
@@ -99,7 +96,6 @@ cross_val = function(backtest=1, d, capital){
       returns = calc.return(starts.test,ends.test,weights, capital, i)
       totalReturns[,i+1] = returns
     }
-    return(totalReturns)
   }
 
 }
