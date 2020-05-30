@@ -1,19 +1,21 @@
 library(pracma)
 
+# jpeg("mark.png",width=700,height=700)
 # source("m70final.R")
 # X = parse.data("all_stocks_5yr.csv")
 # markBullet(X, plotting=T)
+# dev.off()
 
 # gets the matrix of daily returns
 get.ret.mat = function(X) {
   X = X[2:length(X)]
-  # first.date = names(X)[1]
-  # last.date = names(X)[length(X)]
-  # week.seq = seq(ymd(first.date), ymd(last.date), by="1 week")
-  # load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first.date, to=last.date)
-  # week.seq = adjust.next(week.seq, 'QuantLib/UnitedStates/NYSE')
-  # week.seq = as.character(week.seq)
-  # X = X[week.seq]
+  first.date = names(X)[1]
+  last.date = names(X)[length(X)]
+  week.seq = seq(ymd(first.date), ymd(last.date), by="1 week")
+  load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first.date, to=last.date)
+  week.seq = adjust.next(week.seq, 'QuantLib/UnitedStates/NYSE')
+  week.seq = as.character(week.seq)
+  X = X[week.seq]
   X = as.matrix(X)
   ret.mat = (X[,2:dim(X)[2]] - X[,1:dim(X)[2] - 1]) / X[,1:dim(X)[2] - 1]
   return(ret.mat)
@@ -38,7 +40,7 @@ find.a = function(r,R,mu,omega){
     return(left.side - right.side)
   }
   omega.inv = solve(omega)
-  
+
   A = as.single(t(mu)%*%omega.inv%*%one)
   B = as.single(t(mu)%*%omega.inv%*%mu)
   C = as.single(t(one)%*%omega.inv%*%one)
@@ -56,6 +58,12 @@ intervalPortfolio = function(X,r,R){
   ret.mat = get.ret.mat(X)
   mu = rowMeans(ret.mat)
   omega = cor(t(ret.mat))
+  omega.inv = tryCatch({
+    solve(omega)
+  }, error = function(e) {
+    print("Using pinv")
+    pinv(omega)
+  })
   a = find.a(r,R,mu,omega)
   w_tilde = omega.inv%*%(a*mu + ((1-a*A)/C)*one)
   return(w_tilde)
@@ -106,9 +114,14 @@ markBullet = function(data, plotting=F) {
   # display Markowitz bullet
   annual_return = ((1+r_vals)^252.75-1) * 100
 
-  if (plotting == T)
-    plot(volatilities, annual_return, type="l", main="Markowitz Bullet for X Stock Data",
+  if (plotting == T) {
+    plot(volatilities, annual_return, type="l", main="Markowitz Bullet",
         xlab="Annual Volatility (Percent)", ylab="Annual Expected Return (Percent)")
+    segments(0,annual_return[index],50,annual_return[index])
+    text(23,annual_return[index]+1.2, paste("Lowest volatility, return =", round(annual_return[index],2)),cex=1.3)
+    quart = as.integer(length(r_vals) * 0.25)
+    points(volatilities[c(quart, index, quart*3)], annual_return[c(quart, index, quart*3)],pch=16,cex=1.5)
+  }
 
   return(optimal_weights)
 }
