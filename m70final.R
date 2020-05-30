@@ -5,7 +5,7 @@ require(dplyr)
 require(tidyverse)
 require(lubridate)
 require(bizdays)
-#source("markowitzCode.R")
+source("markowitzCode.R")
 
 
 ################  Main  ################
@@ -13,7 +13,7 @@ require(bizdays)
 main = function(backtest=1,capital=100000){
   d = parse.data("all_stocks_5yr.csv")
   crs_val <- cross_val(backtest=backtest,d,capital)
-  graphing()
+  #graphing()
 }
 
 
@@ -65,20 +65,21 @@ cross_val = function(backtest=1, d, capital){
     ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
     ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
     
-    returnsNoRealloc = matrix(rep(0,2*nrow(d)), nrow=2)
-    returnsRealloc = matrix(rep(0,2*nrow(d)), nrow=2)
+    returnsNoRealloc = matrix(rep(0,2*length(starts.train)), nrow=2)
+    returnsRealloc = matrix(rep(0,2*length(starts.train)), nrow=2)
     for(i in 1:(length(starts.train))){
       
       weights = calc.weights(starts.train[i],ends.train[i],d)
-      returnsDate = calc.return(starts.test[i],ends.test[i],weights, capital, 0)
-      returnsNoRealloc[,i]=returnsDate
+      returns = calc.return(starts.test[i],ends.test[i],weights, capital, 0)
+      returnsNoRealloc[,i]=returns
     }
     for(i in 1:(length(starts.train))){
       
       weights = calc.weights(starts.train[i],ends.train[i],d)
-      returnsDate = calc.return(starts.test[i],ends.test[i],weights, capital, 1)
-      returnsRealloc[,i]=returnsDate
+      returns = calc.return(starts.test[i],ends.test[i],weights, capital, 1)
+      returnsRealloc[,i]=returns
     }
+    return(c(returnsNoRealloc,returnsRealloc))
   }
 
   if(backtest==2){
@@ -86,6 +87,18 @@ cross_val = function(backtest=1, d, capital){
     ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
     starts.test = ends.train
     ends.test = ymd(names(d)[ncol(d)])
+    
+    print(starts.test)
+    print(ends.test)
+    
+    numReAllocs = 8
+    totalReturns = matrix(rep(0,2*(numReAllocs+1)), nrow=2)
+    weights = calc.weights(first,ends.train,d)
+    for(i in 0:numReAllocs){
+      returns = calc.return(starts.test,ends.test,weights, capital, i)
+      totalReturns[,i+1] = returns
+    }
+    return(totalReturns)
   }
 
 }
@@ -120,7 +133,7 @@ calc.return = function(start,end,weights,capital,realloc){
   # get start price
   old_price = d %>% select(format(start))
   # number of days per time period
-  numDays = (end-start)/realloc
+  numDays = round((end-start)/realloc)
   
   for(i in 1:realloc){
     # Stock bought for time period
