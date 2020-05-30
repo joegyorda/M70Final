@@ -5,14 +5,15 @@ require(dplyr)
 require(tidyverse)
 require(lubridate)
 require(bizdays)
-source("markowitzCode.R")
+#source("markowitzCode.R")
 
 
 ################  Main  ################
 
 main = function(backtest=1,capital=100000){
   d = parse.data("all_stocks_5yr.csv")
-  cross_val(backtest=backtest,d,capital)
+  crs_val <- cross_val(backtest=backtest,d,capital)
+  graphing()
 }
 
 
@@ -20,20 +21,20 @@ main = function(backtest=1,capital=100000){
 parse.data = function(path){
   ### Read CSV
   findat <- read.csv(path, stringsAsFactors=F)
-
+  
   ### Truncate Data, just for initial time-consumption purposes, should be on all data
   findat$date = as.POSIXct(findat$date)
   findat_trunc = findat
-
+  
   ### Reformat Data
   findat_trunc$open
   res <- findat %>% pivot_wider(id_cols = "Name", values_from = "open", names_from = c("date"))
-
+  
   ### Information on Matrices
   names(findat)
   dim(findat)
   dim(res)
-
+  
   res = na.omit(res)
   return(res)
 }
@@ -45,13 +46,13 @@ cross_val = function(backtest=1, d, capital){
   last = ymd(names(d)[ncol(d)])-months(12)
   
   callast = last + years(2)
-
+  
   #Load biz calendar
   load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first, to=callast)
   
   #Train on 6 months, test on 6 months, no redistribution
   if(backtest==1){
-
+    
     # Start dates for training (also end dates for testing) using biz days of NYSE
     starts.train = bizseq(from=first, to=last,'QuantLib/UnitedStates/NYSE')
     
@@ -79,13 +80,12 @@ cross_val = function(backtest=1, d, capital){
       returnsRealloc[,i]=returnsDate
     }
   }
+
   if(backtest==2){
     ends.train = add_with_rollback(first, months(6), roll_to_first = TRUE)
     ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
     starts.test = ends.train
     ends.test = ymd(names(d)[ncol(d)])
-    
-    
   }
 
 }
@@ -134,7 +134,7 @@ calc.return = function(start,end,weights,capital,realloc){
       mid = add_with_rollback(start, days(numDays), roll_to_first = TRUE)
       mid = adjust.next(mid,'QuantLib/UnitedStates/NYSE')
     }
-
+    
     # Ending prices for time period
     new_price = d %>% select(format(mid))
     # Change in stock prices for time period
@@ -187,3 +187,43 @@ hclust.portfolio = function(d, method="average") {
   return(allocs)
 }
 
+################  Graphing Function ################ 
+# ### Takes in end dates of testing periods, returns from each model, and initial capital amount
+graphing <- function(dates,
+                     hca_returns, bullet_returns,cap) {
+  
+  #one dataframe of all relevant plotting data
+  dat_df <- data.frame(cbind(dates, hca_returns, dates))
+  
+  #colors for legend
+  colors <- c("HCA" = "#ffa600", "Markowitz Bullet" = "#bc5090")
+  
+  
+  return_plt <- ggplot() +
+    geom_line(data = dat_df, aes(x = dates, y = hca_returns, color = "HCA")) +
+    geom_line(data = dat_df, aes(x = dates, y = bullet_returns, color = "Markowitz Bullet")) +
+    labs(y = "Returns", x = "Dates", col = "Model", title = "Model Performance on 2013-2018 Stock Price") +
+    theme_classic() + scale_color_manual(values = colors)
+  
+  
+  final_rets <-  c(hca_returns[length(hca_returns)],
+                  bullet_returns[length(bullet_returns)])
+  
+  nms = c("HCA", "Markowitz Bullet")
+  
+  print(paste("At end of final testing period, returns for each model were  ",
+              nms[2], ": ", final_rets[2],
+              nms[3], ": ", final_rets[3]))
+  
+  best = c("Best Model", cap)
+  
+  if (hca_returns[length(hca_returns)] == max(final_rets)) {best = c("Hierarchical Cluster Analysis", hca_returns[length(hca_returns)]/cap)}
+  if (bullet_returns[length(bullet_returns)] == max(final_rets)) {best = c("Markowitz Bullet", bullet_returns[length(bullet_returns)]/cap)}
+  
+  
+  print(paste("Highest Return at End of Testing Period Was", best[1], "with final ROI of", as.numeric(best[2])*100, "%"))
+  
+  print(paste("Other ROIs were", (final_rets[-which.max(final_rets)] * 100/cap)[1],"%", "for", nms[-which.max(final_rets)][1]))
+  
+  show(return_plt)
+}
