@@ -47,50 +47,37 @@ cross_val = function(backtest=1, d, capital){
 
   #Load biz calendar
   load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first, to=callast)
-
-  starts.train = first
-  ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
-  ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
-  starts.test = ends.train
-  ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
-  ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
-  
-  print(starts.train)
-  print(ends.train)
-  print(starts.test)
-  print(ends.test)
-  
-  weights = calc.weights(starts.train,ends.train,d)
-  print("weights")
-  print(weights)
-  returns = calc.return(starts.test,ends.test,weights, capital, 0)
-  print("returns")
-  print(returns)
-  print("returns - initial capital")
-  print(returns - capital)
-  
-  
   
   #Train on 6 months, test on 6 months, no redistribution
-  #if(backtest==1){
+  if(backtest==1){
 
     # Start dates for training (also end dates for testing) using biz days of NYSE
-    #starts.train = bizseq(from=first, to=last,'QuantLib/UnitedStates/NYSE')
+    starts.train = bizseq(from=first, to=last,'QuantLib/UnitedStates/NYSE')
     
     # End dates for training (also start dates for testing)
     # Add 6 months to start date, round to nearest NYSE business day
-    #ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
-    #ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
+    ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
+    ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
     
     #starts.test = ends.train
-    #ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
-    #ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
+    ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
+    ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
     
-    #returns = c()
-    #for(i in 1:(length(starts.train))){
-
-    #}
-  #}
+    returnsNoRealloc = matrix(rep(0,2*nrow(d)), nrow=2)
+    returnsRealloc = matrix(rep(0,2*nrow(d)), nrow=2)
+    for(i in 1:(length(starts.train))){
+      
+      weights = calc.weights(starts.train[i],ends.train[i],d)
+      returnsDate = calc.return(starts.test[i],ends.test[i],weights, capital, 0)
+      returnsNoRealloc[,i]=returnsDate
+    }
+    for(i in 1:(length(starts.train))){
+      
+      weights = calc.weights(starts.train[i],ends.train[i],d)
+      returnsDate = calc.return(starts.test[i],ends.test[i],weights, capital, 1)
+      returnsRealloc[,i]=returnsDate
+    }
+  }
 
 }
 
@@ -103,15 +90,9 @@ calc.weights = function(start, end, d, returnLow=0, returnHigh=0){
   # Including intervalPortfolio
   #weights = matrix(rep(0,3*nrow(d)),nrow=3)
   # Not inclduing interval portfolio
-  
   weights = matrix(rep(0,2*nrow(d)),ncol=nrow(d))
   
-  #print(dim(weights))
-  #print(dim(d %>% select(format(start):format(end))))
-  #print(dim(as.matrix(hclust.portfolio(d %>% select(format(start):format(end))))))
-  View(d %>% select(format(start):format(end)))
-  print(hclust.portfolio(d %>% select(format(start):format(end))))
-  weights[1,] = hclust.portfolio(d %>% select(format(start):format(end)))
+  weights[1,] = hclust.portfolio(t(d %>% select(format(start):format(end))))
   weights[2,] = markBullet(d %>% select(format(start):format(end)))
   #weights[3,] = intervalPortfolio(d %>% select(format(start):format(end)), r=returnLow, R=returnHigh)
   return(weights)
@@ -124,40 +105,40 @@ calc.weights = function(start, end, d, returnLow=0, returnHigh=0){
 # realloc - number of times to reallocate
 # capital - starting capital
 calc.return = function(start,end,weights,capital,realloc){
+  capital = rep(capital,nrow(weights))
+  realloc = realloc + 1
+  
   # get start price
   old_price = d %>% select(format(start))
   # number of days per time period
-  if(realloc !=0 ){numDays = (end-start)/realloc}
-    
+  numDays = (end-start)/realloc
   
-  for(i in 0:realloc){
+  for(i in 1:realloc){
     # Stock bought for time period
     bought = weights*capital
     
-    # Find end of time period
-    if(realloc !=0 ){
-      mid = add_with_rollback(starts.test, days(numDays), roll_to_first = TRUE)
-      mid = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
+    if(i == realloc){
+      mid=end
     }
     else{
-      mid=end
+      # Find end of time period
+      mid = add_with_rollback(start, days(numDays), roll_to_first = TRUE)
+      mid = adjust.next(mid,'QuantLib/UnitedStates/NYSE')
     }
 
     # Ending prices for time period
     new_price = d %>% select(format(mid))
-    
     # Change in stock prices for time period
-    change = (old_price - new_price)/old_price
-    
+    change = as.matrix((new_price - old_price)/old_price)+1
     # Returns for time period
-    # Make sure change is a column vector - stocks as rows 
-    returns = (bought %*% change)#[[1]]
+    returns = (bought %*% change)
     
     # New capital
-    capital = sum(returns)
+    capital = as.vector(returns)
     
     # New prices
     old_price = new_price
+    start = mid
   }
   return(capital)
 }
@@ -197,5 +178,3 @@ hclust.portfolio = function(d, method="average") {
   return(allocs)
 }
 
-###View(hclust.portfolio(res[,2:ncol(res)]))
-# main()
