@@ -12,8 +12,7 @@ source("markowitzCode.R")
 
 main = function(backtest=1,capital=100000){
   d = parse.data("all_stocks_5yr.csv")
-  crs_val <- cross_val(backtest=backtest,d,capital)
-  #graphing()
+  cross_val(backtest=backtest,d,capital)
 }
 
 
@@ -50,7 +49,7 @@ cross_val = function(backtest=1, d, capital){
   #Load biz calendar
   load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first, to=callast)
   
-  #Train on 6 months, test on 6 months, no redistribution
+  #Train on 6 months, test on 6 months
   if(backtest==1){
     
     # Start dates for training (also end dates for testing) using biz days of NYSE
@@ -79,6 +78,8 @@ cross_val = function(backtest=1, d, capital){
       returns = calc.return(starts.test[i],ends.test[i],weights, capital, 1)
       returnsRealloc[,i]=returns
     }
+    
+
     return(c(returnsNoRealloc,returnsRealloc))
   }
 
@@ -204,7 +205,7 @@ hclust.portfolio = function(d, method="average") {
 # ### Takes in end dates of testing periods, returns from each model, and initial capital amount
 graphing <- function(dates,
                      hca_returns, bullet_returns,cap) {
-  
+  dates <- as.Date(dates)
   #one dataframe of all relevant plotting data
   dat_df <- data.frame(cbind(dates, hca_returns, dates))
   
