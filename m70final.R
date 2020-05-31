@@ -14,6 +14,7 @@ main = function(backtest=1,capital=100000){
   d = parse.data("all_stocks_5yr.csv")
   returnsNoRealloc <- cross_val(backtest=1,d,capital,reall=0)
   returnsRealloc <- cross_val(backtest=1,d,capital,reall=1)
+  returnsLong <- cross_val(backtest=2,d,capital,reall=10)
   
   graphing(dates = ends.test,hca_returns = returnsNoRealloc[1,],bullet_returns = returnsNoRealloc[2,],cap=capital)
   graphing(dates = ends.test,hca_returns = returnsRealloc[1,],bullet_returns = returnsRealloc[2,],cap=capital)
@@ -69,8 +70,8 @@ cross_val = function(backtest=1, d, capital, reall){
     ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
     ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
     
-    returnsNoRealloc = matrix(rep(0,2*length(starts.train)), nrow=2)
-    returnsRealloc = matrix(rep(0,2*length(starts.train)), nrow=2)
+    returnsNoRealloc = matrix(rep(0,3*length(starts.train)), nrow=3)
+    returnsRealloc = matrix(rep(0,3*length(starts.train)), nrow=3)
     for(i in 1:(length(starts.train))){
       
       weights = calc.weights(starts.train[i],ends.train[i],d)
@@ -95,13 +96,14 @@ cross_val = function(backtest=1, d, capital, reall){
     starts.test = ends.train
     ends.test = ymd(names(d)[ncol(d)])
     
-    numReAllocs = 8
+    numReAllocs = reall
     totalReturns = matrix(rep(0,3*(numReAllocs+1)), nrow=3)
     weights = calc.weights(first,ends.train,d)
     for(i in 0:numReAllocs){
       returns = calc.return(starts.test,ends.test,weights, capital, i)
       totalReturns[,i+1] = returns
     }
+    return(totalReturns)
   }
 
 }
@@ -113,13 +115,13 @@ cross_val = function(backtest=1, d, capital, reall){
 calc.weights = function(start, end, d, returnLow=0.05, returnHigh=0.15){
   # rows are models, columns are stocks
   # Including intervalPortfolio
-  #weights = matrix(rep(0,3*nrow(d)),nrow=3)
+  weights = matrix(rep(0,3*nrow(d)),nrow=3)
   # Not inclduing interval portfolio
-  weights = matrix(rep(0,2*nrow(d)),ncol=nrow(d))
+  #weights = matrix(rep(0,2*nrow(d)),ncol=nrow(d))
   
   weights[1,] = hclust.portfolio(t(d %>% select(format(start):format(end))))
   weights[2,] = markBullet(d %>% select(format(start):format(end)))
-  #weights[3,] = intervalPortfolio(d %>% select(format(start):format(end)), r=returnLow, R=returnHigh)
+  weights[3,] = intervalPortfolio(d %>% select(format(start):format(end)), r=returnLow, R=returnHigh)
   return(weights)
 }
 
