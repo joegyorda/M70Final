@@ -16,8 +16,11 @@ main = function(backtest=1,capital=100000){
   returnsRealloc <- cross_val(backtest=1,d,capital,reall=1)
   returnsLong <- cross_val(backtest=2,d,capital,reall=10)
   
-  graphing(dates = ends.test,hca_returns = returnsNoRealloc[1,],bullet_returns = returnsNoRealloc[2,],cap=capital)
-  graphing(dates = ends.test,hca_returns = returnsRealloc[1,],bullet_returns = returnsRealloc[2,],cap=capital)
+  save(returnsNoRealloc, file= "returnsNoRealloc.csv")
+  save(returnsRealloc, file = "returnsRealloc.csv")
+  save(returnsLong, file = "returnsLong.csv")
+  #graphing(dates = ends.test,hca_returns = returnsNoRealloc[1,],bullet_returns = returnsNoRealloc[2,],cap=capital)
+  #graphing(dates = ends.test,hca_returns = returnsRealloc[1,],bullet_returns = returnsRealloc[2,],cap=capital)
 }
 
 
@@ -44,7 +47,7 @@ parse.data = function(path){
 }
 
 cross_val = function(backtest=1, d, capital, reall){
- # d = d[,1:500]
+  #First start date for training
   #First start date for training
   first = ymd(names(d)[2])
   #Determine last start date for training
@@ -72,6 +75,7 @@ cross_val = function(backtest=1, d, capital, reall){
     
     returnsNoRealloc = matrix(rep(0,3*length(starts.train)), nrow=3)
     returnsRealloc = matrix(rep(0,3*length(starts.train)), nrow=3)
+
     for(i in 1:(length(starts.train))){
       
       weights = calc.weights(starts.train[i],ends.train[i],d)
