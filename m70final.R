@@ -12,7 +12,11 @@ source("markowitzCode.R")
 
 main = function(backtest=1,capital=100000){
   d = parse.data("all_stocks_5yr.csv")
-  cross_val(backtest=backtest,d,capital)
+  returnsNoRealloc <- cross_val(backtest=1,d,capital,reall=0)
+  returnsRealloc <- cross_val(backtest=1,d,capital,reall=1)
+  
+  graphing(dates = ends.test,hca_returns = returnsNoRealloc[1,],bullet_returns = returnsNoRealloc[2,],cap=capital)
+  graphing(dates = ends.test,hca_returns = returnsRealloc[1,],bullet_returns = returnsRealloc[2,],cap=capital)
 }
 
 
@@ -38,8 +42,8 @@ parse.data = function(path){
   return(res)
 }
 
-cross_val = function(backtest=1, d, capital){
-  d = d[,1:500]
+cross_val = function(backtest=1, d, capital, reall){
+ # d = d[,1:500]
   #First start date for training
   first = ymd(names(d)[2])
   #Determine last start date for training
@@ -65,8 +69,8 @@ cross_val = function(backtest=1, d, capital){
     ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
     ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
     
-    returnsNoRealloc = matrix(rep(0,3*length(starts.train)), nrow=3)
-    returnsRealloc = matrix(rep(0,3*length(starts.train)), nrow=3)
+    returnsNoRealloc = matrix(rep(0,2*length(starts.train)), nrow=2)
+    returnsRealloc = matrix(rep(0,2*length(starts.train)), nrow=2)
     for(i in 1:(length(starts.train))){
       
       weights = calc.weights(starts.train[i],ends.train[i],d)
@@ -79,8 +83,10 @@ cross_val = function(backtest=1, d, capital){
       returns = calc.return(starts.test[i],ends.test[i],weights, capital, 1)
       returnsRealloc[,i]=returns
     }
+    if(reall==0){return(returnsNoRealloc)}
+    if(reall==1){return(returnsRealloc)}
     
-    graphing(dates = ends.test,hca_returns = returnsNoRealloc[1,],bullet_returns = returnsNoRealloc[2,],cap=capital)
+    #graphing(dates = ends.test,hca_returns = returnsNoRealloc[1,],bullet_returns = returnsNoRealloc[2,],cap=capital)
   }
 
   if(backtest==2){
@@ -107,13 +113,13 @@ cross_val = function(backtest=1, d, capital){
 calc.weights = function(start, end, d, returnLow=0.05, returnHigh=0.15){
   # rows are models, columns are stocks
   # Including intervalPortfolio
-  weights = matrix(rep(0,3*nrow(d)),nrow=3)
+  #weights = matrix(rep(0,3*nrow(d)),nrow=3)
   # Not inclduing interval portfolio
-  #weights = matrix(rep(0,2*nrow(d)),ncol=nrow(d))
+  weights = matrix(rep(0,2*nrow(d)),ncol=nrow(d))
   
   weights[1,] = hclust.portfolio(t(d %>% select(format(start):format(end))))
   weights[2,] = markBullet(d %>% select(format(start):format(end)))
-  weights[3,] = intervalPortfolio(d %>% select(format(start):format(end)), r=returnLow, R=returnHigh)
+  #weights[3,] = intervalPortfolio(d %>% select(format(start):format(end)), r=returnLow, R=returnHigh)
   return(weights)
 }
 
@@ -199,33 +205,32 @@ hclust.portfolio = function(d, method="average") {
 
 ################  Graphing Function ################ 
 # ### Takes in end dates of testing periods, returns from each model, and initial capital amount
-graphing <- function(dates, int_port_returns,
+graphing <- function(dates,
                      hca_returns, bullet_returns,cap) {
   
-  int_port_returns = int_port_returns/cap * 100
+  #int_port_returns = int_port_returns/cap * 100
   hca_returns = hca_returns/cap * 100
   bullet_returns = bullet_returns/cap * 100
   dates = as.Date(dates)
   
   #one dataframe of all relevant plotting data
-  dat_df <- data.frame(cbind(int_port_returns, hca_returns, bullet_returns))
+  dat_df <- data.frame(cbind(hca_returns, bullet_returns))
   
   #colors for legend
   colors <- c("Interval Portfolio" = "#58508d", "HCA" = "#ffa600", "Markowitz Bullet" = "#bc5090")
   
   
   return_plt <- ggplot(data = dat_df) +
-    geom_line(aes(y = int_port_returns, x = dates, color = "Interval Portfolio")) + 
     geom_line(aes(y = hca_returns, x = dates, color = "HCA")) +
     geom_line(aes(y = bullet_returns, x = dates, color = "Markowitz Bullet")) +
-    labs(y = "Returns (Percentage)", x = "Dates (2013 on)", col = "Model", title = "Performance by Model on 2013-2018 Stock Prices") +
+    labs(y = "Returns (Percentage)", x = "Dates (2013 on)", col = "Model", title = "Performance on 2013-2018 Stock Prices - No Reallocation") +
     scale_color_manual(values = colors) + scale_x_date() + theme_light()
   
   
-    final_rets <- c(int_port_returns[length(int_port_returns)], hca_returns[length(hca_returns)],
+    final_rets <- c(hca_returns[length(hca_returns)],
                      bullet_returns[length(bullet_returns)])
     
-    nms = c("Interval Portfolio", "HCA", "Markowitz Bullet")
+    nms = c("HCA", "Markowitz Bullet")
 
     return_plt
     

@@ -32,7 +32,7 @@ inv = function(omega) {
 }
 
 # finds the optimal a for interval allocation
-find.a = function(r,R,mu,omega){
+find.a = function(r,R,mu,omega, one){
   obj.func = function(a, mu, omega, p, P, C, Q) {
     left.side = pnorm((P-a)/sqrt(C * (Q +a^2)))
     right.side= pnorm((p-a)/sqrt(C*(Q+a^2)))
@@ -40,8 +40,7 @@ find.a = function(r,R,mu,omega){
   }
 
   omega.inv = inv(omega)
-
-
+  
   A = as.single(t(mu)%*%omega.inv%*%one)
   B = as.single(t(mu)%*%omega.inv%*%mu)
   C = as.single(t(one)%*%omega.inv%*%one)
@@ -57,10 +56,11 @@ find.a = function(r,R,mu,omega){
 # computes weights of optimal interval portfolio
 intervalPortfolio = function(X,r,R){
   ret.mat = get.ret.mat(X)
+  one = matrix(1, nrow=nrow(X)) 
   mu = rowMeans(ret.mat)
   omega = cor(t(ret.mat))
   omega.inv = inv(omega)
-  a = find.a(r,R,mu,omega)
+  a = find.a(r,R,mu,omega, one)
   w_tilde = omega.inv%*%(a*mu + ((1-a*A)/C)*one)
   return(w_tilde)
 }
