@@ -16,9 +16,11 @@ main = function(backtest=1,capital=100000){
   returnsRealloc <- cross_val(backtest=1,d,capital,reall=1)
   returnsLong <- cross_val(backtest=2,d,capital,reall=10)
   
-  save(returnsNoRealloc, file= "returnsNoRealloc.csv")
-  save(returnsRealloc, file = "returnsRealloc.csv")
-  save(returnsLong, file = "returnsLong.csv")
+  write.csv(returnsNoRealloc, file= "returnsNoRealloc.csv")
+  write.csv(returnsRealloc, file = "returnsRealloc.csv")
+  write.csv(returnsLong, file = "returnsLong.csv")
+  write.csv(returnsNoRealloc2, file= "returnsNoRealloc2.csv")
+  write.csv(returnsRealloc2, file = "returnsRealloc2.csv")
   #graphing(dates = ends.test,hca_returns = returnsNoRealloc[1,],bullet_returns = returnsNoRealloc[2,],cap=capital)
   #graphing(dates = ends.test,hca_returns = returnsRealloc[1,],bullet_returns = returnsRealloc[2,],cap=capital)
 }
