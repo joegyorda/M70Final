@@ -40,12 +40,10 @@ find.a = function(r,R,mu,omega, one){
   }
 
   omega.inv = inv(omega)
-  
   A = as.single(t(mu)%*%omega.inv%*%one)
   B = as.single(t(mu)%*%omega.inv%*%mu)
   C = as.single(t(one)%*%omega.inv%*%one)
   D = B*C-A^2
-  print(D)
   P=(R*C-A)/D
   p=(r*C-A)/D
   Q=1/D

@@ -12,6 +12,8 @@ source("markowitzCode.R")
 
 main = function(backtest=1,capital=100000){
   d = parse.data("all_stocks_5yr.csv")
+  d = d[sample(1:nrow(d), 50)]
+  
   returnsNoRealloc2 <- cross_val(backtest=1,d,capital,reall=0)
   returnsRealloc2 <- cross_val(backtest=1,d,capital,reall=1)
   returnsLong <- cross_val(backtest=2,d,capital,reall=10)
@@ -49,15 +51,17 @@ parse.data = function(path){
   return(res)
 }
 
+
 cross_val = function(backtest=1, d, capital, reall){
   #First start date for training
   first = ymd(names(d)[2])
   #Determine last start date for training
-  last = ymd(names(d)[ncol(d)])-period(c(2,0,2), c("year","month","day"))
+  last = ymd(names(d)[ncol(d)])-period(c(4,0,4), c("year","month","day"))
   callast = last + years(6)
   
   #Load biz calendar
   load_quantlib_calendars(ql_calendars = 'UnitedStates/NYSE', from=first, to=callast)
+  last = adjust.next(last,'QuantLib/UnitedStates/NYSE')
   
   #Train on 6 months, test on 6 months
   if(backtest==1){
@@ -74,11 +78,7 @@ cross_val = function(backtest=1, d, capital, reall){
     ends.test = add_with_rollback(starts.test, years(2), roll_to_first = TRUE)
     ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
     
-    
     returnsTotal = matrix(rep(0,3*length(starts.train)), nrow=3)
-
-    write.csv(calc.weights(starts.train[1],ends.train[1],d), file="weights")
-    return("yeet")
     
     for(i in 1:(length(starts.train))){
       
