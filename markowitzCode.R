@@ -45,11 +45,11 @@ find.a = function(r,R,mu,omega, one){
   B = as.single(t(mu)%*%omega.inv%*%mu)
   C = as.single(t(one)%*%omega.inv%*%one)
   D = B*C-A^2
+  print(D)
   P=(R*C-A)/D
   p=(r*C-A)/D
   Q=1/D
-  rid=A/C
-  sol = optimize(obj.func,c((rid*C-A)/D-10,(rid*C-A)+10),mu, omega, p, P, C, Q, maximum=TRUE)
+  sol = optimize(obj.func,c((r*C-A)/D-100,(R*C-A)+100),mu, omega, p, P, C, Q, maximum=TRUE)
   return(sol$maximum)
 }
 
