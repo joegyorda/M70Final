@@ -59,7 +59,7 @@ intervalPortfolio = function(X,r,R){
   one = matrix(1, nrow=nrow(X)) 
   mu = rowMeans(ret.mat)
   omega = cor(t(ret.mat))
-  omega.inv = inv(omega)
+  omega.inv = solve(omega)
   A = as.single(t(mu)%*%omega.inv%*%one)
   C = as.single(t(one)%*%omega.inv%*%one)
   a = find.a(r,R,mu,omega, one)
@@ -72,7 +72,7 @@ markBullet = function(data, plotting=F) {
   ret.mat = get.ret.mat(data)
   mu = rowMeans(ret.mat)
   omega = cor(t(ret.mat))
-  omega.inv = inv(omega)
+  omega.inv = solve(omega)
 
   one = matrix(1, nrow=nrow(data))               # column vector of all 1's
 
