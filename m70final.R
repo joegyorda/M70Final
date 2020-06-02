@@ -208,7 +208,7 @@ hclust.portfolio = function(d, method="average") {
 
 ################  Graphing Function ################ 
 # ### Takes in end dates of testing periods, returns from each model, and initial capital amount
-graphing <- function(dates,
+graphing_no_interval <- function(dates,
                      hca_returns, bullet_returns,cap) {
   
   #int_port_returns = int_port_returns/cap * 100
@@ -237,4 +237,43 @@ graphing <- function(dates,
 
     return_plt
     
+}
+
+#equal returns is with equal weights dispensed, take it out if need be
+graphing <- function(dates, int_port_returns,
+                     hca_returns, bullet_returns, rand_returns, cap, title) {
+  
+  
+  int_port_returns = ((int_port_returns/cap)-1) * 100
+  hca_returns = ((hca_returns/cap)-1) * 100
+  bullet_returns = ((bullet_returns/cap)-1)* 100
+  rand_returns = ((rand_returns/cap)-1) * 100
+  dates = as.Date.numeric(dates, origin = "1970-1-1")
+
+  #one dataframe of all relevant plotting data
+  dat_df <- data.frame(cbind(int_port_returns, hca_returns, bullet_returns))
+  
+  #colors for legend
+  colors <- c("Interval Portfolio" = "black", 
+              "HCA" = "purple", 
+              "Markowitz Bullet" = "#3FA7D6",
+              "Equal Allocation" = "#EE6352")
+  
+  return_plt <- ggplot(data = dat_df, aes(x = dates)) + 
+    geom_smooth(aes(y = int_port_returns, color = "Interval Portfolio"), se = FALSE) + 
+    geom_smooth(aes(y = hca_returns,color = "HCA"), se = FALSE) +
+    geom_smooth(aes(y = bullet_returns, color = "Markowitz Bullet"), se = FALSE) +
+    geom_smooth(aes(y = rand_returns, color = "Equal Allocation"), se = FALSE) +
+    
+    geom_line(aes(y = int_port_returns, color = "Interval Portfolio", alpha = 0.2)) + 
+    geom_line(aes(y = hca_returns,color = "HCA", alpha = 0.2)) +
+    geom_line(aes(y = bullet_returns, color = "Markowitz Bullet"), alpha = 0.2) +
+    geom_line(aes(y = rand_returns, color = "Equal Allocation"), alpha = 0.2) +
+    scale_y_continuous(limits = c(-25, 50)) +
+    labs(y = "Returns (Percentage)", x = "Dates (2013 on)", 
+         col = "Model", title = "Performance by Model on 2013-2018 Stock Prices",
+         subtitle = title) +
+    scale_color_manual(values = colors) + theme_light() + scale_x_date() + scale_alpha(guide = 'none')
+  
+  show(return_plt)
 }
