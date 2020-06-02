@@ -78,7 +78,7 @@ intervalPortfolio = function(X,r,R){
   one = matrix(1, nrow=nrow(X)) 
   mu = rowMeans(ret.mat)
   omega = cor(t(ret.mat))
-  omega.inv = solve(omega)
+  omega.inv = inv(omega)
   A = as.single(t(mu)%*%omega.inv%*%one)
   C = as.single(t(one)%*%omega.inv%*%one)
   a = find.a(r,R,mu,omega, one)

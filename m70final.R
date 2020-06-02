@@ -13,21 +13,53 @@ source("markowitzCode.R")
 main = function(backtest=1,capital=100000){
   d = parse.data("all_stocks_5yr.csv")
   
-  indices = order(sample(1:nrow(d), 50))
-  d = d[indices,]
+  ### Get sample for 6 months
+  indices.6month = sample(1:nrow(d), 30)
+  d.sample = d[indices.6month,]
   
-  Short_yna <- cross_val(backtest=1,d,capital,reall=0)
-  Short_2ya <- cross_val(backtest=1,d,capital,reall=1)
-  Short_longtest <- cross_val(backtest=2,d,capital,reall=10)
+  ### Write Dates for testing
+  #6month
+  write.csv(ends.test, file="end_dates_for_testing_6_month_period.csv")
+  #longtest
+  write.csv(c(starts.test,ends.test), file="start_end_for_longtest")
+  #2year
+  write.csv(ends.test, file="end_dates_for_testing_2_year_period.csv")
+    
+  ### Write Stocks Used in Sample
+  write.csv(row.names(d.6month), file="stocks_for_test.csv")
   
-  write.csv(returnsNoRealloc, file= "returnsNoRealloc.csv")
-  write.csv(returnsRealloc, file = "returnsRealloc.csv")
-  write.csv(returnsLong, file = "returnsLong.csv")
+  ### Create and Write Returns for Test with Sample of Stocks
+  #6month - no reallocation
+  short.6month.noreall <- cross_val(backtest=1,d.sample,capital,reall=0)
+  write.csv(short.6month.noreall,file="returns_6_months_for_sample_no_reallocation.csv")
+  #6month - reallocation
+  short.6month.reall <- cross_val(backtest=1,d.sample,capital,reall=1)
+  write.csv(short.6month.reall,file="returns_6_months_for_sample_reallocation.csv")
+  #longtest
+  short.longtest <- cross_val(backtest=2,d.sample,capital,reall=10)
+  write.csv(short.longtest,file="returns_long_test_for_sample.csv")
+  #2year - no reallocation
+  short.2year.noreall <- cross_val(backtest=1,d.sample,capital,reall=0)
+  write.csv(short.2year.noreall,file="returns_2_years_for_sample_no_reallocation.csv")
+  #2year - reallocation
+  short.2year.reall <- cross_val(backtest=1,d.sample,capital,reall=1)
+  write.csv(short.2year.reall,file="returns_2_years_for_sample_reallocation.csv")
+  
+  ### Create and Write Returns for Test with Entire DataSet
+  #6month - no reallocation
+  total.returns.noreall <- cross_val(backtest=1,d,capital,reall=0)
+  write.csv(total.returns.noreall, file= "returns_6_months_for_total_no_reallocation.csv")
+  #6month - reallocation
+  total.returns.reall <- cross_val(backtest=1,d,capital,reall=1)
+  write.csv(total.returns.reall, file= "returns_6_months_for_total_reallocation.csv")
+  #longtest
+  total.returns.longtest <- cross_val(backtest=2,d.6month,capital,reall=10)
+  write.csv(total.returns.longtest,file="returns_long_test_for_total.csv")
+  #2years - no reallocation
   write.csv(returnsNoRealloc2, file= "returnsNoRealloc2.csv")
+  #2years - reallocation
   write.csv(returnsRealloc2, file = "returnsRealloc2.csv")
   
-  #graphing(dates = ends.test,hca_returns = returnsNoRealloc[1,],bullet_returns = returnsNoRealloc[2,],cap=capital)
-  #graphing(dates = ends.test,hca_returns = returnsRealloc[1,],bullet_returns = returnsRealloc[2,],cap=capital)
 }
 
 
@@ -58,8 +90,8 @@ cross_val = function(backtest=1, d, capital, reall){
   #First start date for training
   first = ymd(names(d)[2])
   #Determine last start date for training
-  #last = ymd(names(d)[ncol(d)])-period(c(4,0,4), c("year","month","day"))
-  last = ymd(names(d)[ncol(d)])-months(12)
+  last = ymd(names(d)[ncol(d)])-period(c(4,0,4), c("year","month","day"))
+  #last = ymd(names(d)[ncol(d)])-months(12)
   callast = last + years(6)
   
   #Load biz calendar
@@ -74,25 +106,23 @@ cross_val = function(backtest=1, d, capital, reall){
     
     # End dates for training (also start dates for testing)
     # Add 6 months to start date, round to nearest NYSE business day
-    ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
+    #ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
+    ends.train = add_with_rollback(starts.train, years(2), roll_to_first = TRUE)
     ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
     
     starts.test = ends.train
-    ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
+    #ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
+    ends.test = add_with_rollback(starts.test, years(2), roll_to_first = TRUE)
     ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
     
     returnsTotal = matrix(rep(0,3*length(starts.train)), nrow=3)
     
     for(i in 1:(length(starts.train))){
-      
       weights = calc.weights(starts.train[i], ends.train[i], d)
       returns = calc.return(starts.test[i], ends.test[i], d, weights, capital, reall)
       returnsTotal[,i]=returns
-      return()
     }
     return(returnsTotal)
-    
-    #graphing(dates = ends.test,hca_returns = returnsNoRealloc[1,],bullet_returns = returnsNoRealloc[2,],cap=capital)
   }
 
   if(backtest==2){
@@ -105,28 +135,27 @@ cross_val = function(backtest=1, d, capital, reall){
     totalReturns = matrix(rep(0,3*(numReAllocs+1)), nrow=3)
     weights = calc.weights(first,ends.train,d)
     for(i in 0:numReAllocs){
-      returns = calc.return(starts.test,ends.test,weights, capital, i)
+      returns = calc.return(starts.test,ends.test, d, weights, capital, i)
       totalReturns[,i+1] = returns
     }
     return(totalReturns)
   }
-
 }
 
 ### Calculate weights for training period
 # Start - start of training period - date object
 # End - end of training period - date object
 
-calc.weights = function(start, end, d, returnLow=0.05, returnHigh=0.15){
+calc.weights = function(start, end, d){
+  returnLow=(1.05^(1/253))-1; returnHigh=(1.15^(1/253))-1
   # rows are models, columns are stocks
-  # Including intervalPortfolio
-  weights6.1 = matrix(rep(0,3*nrow(d)),nrow=3)
-  # Not inclduing interval portfolio
-  weights6.1[1,] = hclust.portfolio(t(d %>% select(format(start):format(end))))
-  weights6.1[2,] = markBullet(d %>% select(format(start):format(end)))
-  weights6.1[3,] = intervalPortfolio(d %>% select(format(start):format(end)), r=returnLow, R=returnHigh)
-  View(weights6.1)
-  return(weights6.1)
+  weights = matrix(rep(0,3*nrow(d)),nrow=3)
+
+  weights[1,] = hclust.portfolio(t(d %>% select(format(start):format(end))))
+  weights[2,] = markBullet(d %>% select(format(start):format(end)))
+  weights[3,] = intervalPortfolio(d %>% select(format(start):format(end)), r=returnLow, R=returnHigh)
+
+  return(weights)
 }
 
 ### Calculate returns for testing period
@@ -161,15 +190,10 @@ calc.return = function(start,end,d,weights,capital,realloc){
     new_price = d %>% select(format(mid))
     # Change in stock prices for time period
     change = as.matrix((new_price - old_price)/old_price)+1
-    #View((new_price - old_price)/old_price)
-    #View(change)
-    #View(bought)
     # Returns for time period
     returns = (bought %*% change)
-    #View(returns)
     # New capital
     capital = as.vector(returns)
-    
     # New prices
     old_price = new_price
     start = mid
