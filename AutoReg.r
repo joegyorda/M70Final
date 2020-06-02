@@ -11,17 +11,20 @@ a = c(); b=c()
 # for every data point (date in data)
 flag = FALSE
 
-for(i in 1:(n.dates-1)){
-  x1 <- X[,i]
-  y <- X[,i+1]
+for(i in 1:(n.stocks)){
+  x1 <- X[i,1:(n.dates-1)]
+  y <- X[i,2:n.dates]
   datar <- data.frame(y=y,x1=x1)
   o = lm(y~x1,datar)
   a = c(a,summary(o)$coefficients[1, 1])
   b = c(b,summary(o)$coefficients[2, 1])
 }
-mu = mean(a + (1-b)%*%X)
+
+mu = rowMeans(a + X*(1-b))
 return(mu)
 }
+
+
 ####### Original AMAZ.r function #########
 #yy=y
 #y=yy[(maxlag+1):n] #stock to predict
