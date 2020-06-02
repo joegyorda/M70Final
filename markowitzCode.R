@@ -54,6 +54,23 @@ find.a = function(r,R,mu,omega, one){
   return(sol$maximum)
 }
 
+# constrained optimization for finding w for intervalPortfolio
+find.w = function(r,R,fmu,omega){
+  obj.func = function(w, fmu, r, R, omega) {
+    left.side = pnorm((R - t(w) %*% fmu) / sqrt(t(w) %*% omega %*% w))
+    right.side = pnorm((r - t(w) %*% fmu) / sqrt(t(w) %*% omega %*% w))
+    return(right.side - left.side)
+  }
+  
+  init = rep(1, length(fmu))/ length(fmu)
+  rowones = t(rep(1, length(fmu)))
+  ui = rbind(rowones,-diag(length(fmu)))
+  ci = c(1, rep(-1, nrow(ui)-1))
+  # sol = optim(init, obj.func, mu=mu, r=r, R=R, omega=omega) this also works
+  sol = constrOptim(init, obj.func, NULL, ui, ci, fmu=fmu, r=r, R=R, omega=omega)
+  return(sol$par)
+}
+
 # computes weights of optimal interval portfolio
 intervalPortfolio = function(X,r,R){
   ret.mat = get.ret.mat(X)
