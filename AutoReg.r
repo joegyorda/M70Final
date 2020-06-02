@@ -1,23 +1,26 @@
 autoreg <-
-function(data,max.predict)
+function(X)
 {
-y=data
+X = as.matrix(X)
 
-n.dates=dim(y)[2];n.stocks=dim(y)[1]
+n.dates=dim(X)[2];n.stocks=dim(X)[1]
 
 ### Split by stocks here
 
-a = matrix(rep(0,n.stocks * n.dates),ncol = n.stocks)
-b = matrix(rep(0,n.stocks * n.dates),ncol = n.stocks)
+a = c(); b=c()
 # for every data point (date in data)
-for(i in 1:n.dates-1){
-  # Predict the next day (i+1) by the previous day (i)
-  o = lm(X[i+1]~X[i])
-  a[i,] = summary(o)$coefficients[1, 1]
-  b[i,] = summary(o)$coefficients[2, 1]
+flag = FALSE
+
+for(i in 1:(n.dates-1)){
+  x1 <- X[,i]
+  y <- X[,i+1]
+  datar <- data.frame(y=y,x1=x1)
+  o = lm(y~x1,datar)
+  a = c(a,summary(o)$coefficients[1, 1])
+  b = c(b,summary(o)$coefficients[2, 1])
 }
 mu = mean(a + (1-b)%*%X)
-
+return(mu)
 }
 ####### Original AMAZ.r function #########
 #yy=y
