@@ -12,11 +12,13 @@ source("markowitzCode.R")
 
 main = function(backtest=1,capital=100000){
   d = parse.data("all_stocks_5yr.csv")
-  d = d[sample(1:nrow(d), 50)]
   
-  returnsNoRealloc2 <- cross_val(backtest=1,d,capital,reall=0)
-  returnsRealloc2 <- cross_val(backtest=1,d,capital,reall=1)
-  returnsLong <- cross_val(backtest=2,d,capital,reall=10)
+  indices = order(sample(1:nrow(d), 50))
+  d = d[indices,]
+  
+  Short_yna <- cross_val(backtest=1,d,capital,reall=0)
+  Short_2ya <- cross_val(backtest=1,d,capital,reall=1)
+  Short_longtest <- cross_val(backtest=2,d,capital,reall=10)
   
   write.csv(returnsNoRealloc, file= "returnsNoRealloc.csv")
   write.csv(returnsRealloc, file = "returnsRealloc.csv")
@@ -56,7 +58,8 @@ cross_val = function(backtest=1, d, capital, reall){
   #First start date for training
   first = ymd(names(d)[2])
   #Determine last start date for training
-  last = ymd(names(d)[ncol(d)])-period(c(4,0,4), c("year","month","day"))
+  #last = ymd(names(d)[ncol(d)])-period(c(4,0,4), c("year","month","day"))
+  last = ymd(names(d)[ncol(d)])-months(12)
   callast = last + years(6)
   
   #Load biz calendar
@@ -71,23 +74,23 @@ cross_val = function(backtest=1, d, capital, reall){
     
     # End dates for training (also start dates for testing)
     # Add 6 months to start date, round to nearest NYSE business day
-    ends.train = add_with_rollback(starts.train, years(2), roll_to_first = TRUE)
+    ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
     ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
     
     starts.test = ends.train
-    ends.test = add_with_rollback(starts.test, years(2), roll_to_first = TRUE)
+    ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
     ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
     
     returnsTotal = matrix(rep(0,3*length(starts.train)), nrow=3)
     
     for(i in 1:(length(starts.train))){
       
-      weights = calc.weights(starts.train[i],ends.train[i],d)
-      returns = calc.return(starts.test[i],ends.test[i],weights, capital, reall)
+      weights = calc.weights(starts.train[i], ends.train[i], d)
+      returns = calc.return(starts.test[i], ends.test[i], d, weights, capital, reall)
       returnsTotal[,i]=returns
+      return()
     }
     return(returnsTotal)
-   
     
     #graphing(dates = ends.test,hca_returns = returnsNoRealloc[1,],bullet_returns = returnsNoRealloc[2,],cap=capital)
   }
@@ -117,13 +120,13 @@ cross_val = function(backtest=1, d, capital, reall){
 calc.weights = function(start, end, d, returnLow=0.05, returnHigh=0.15){
   # rows are models, columns are stocks
   # Including intervalPortfolio
-  weights = matrix(rep(0,3*nrow(d)),nrow=3)
+  weights6.1 = matrix(rep(0,3*nrow(d)),nrow=3)
   # Not inclduing interval portfolio
-  
-  weights[1,] = hclust.portfolio(t(d %>% select(format(start):format(end))))
-  weights[2,] = markBullet(d %>% select(format(start):format(end)))
-  weights[3,] = intervalPortfolio(d %>% select(format(start):format(end)), r=returnLow, R=returnHigh)
-  return(weights)
+  weights6.1[1,] = hclust.portfolio(t(d %>% select(format(start):format(end))))
+  weights6.1[2,] = markBullet(d %>% select(format(start):format(end)))
+  weights6.1[3,] = intervalPortfolio(d %>% select(format(start):format(end)), r=returnLow, R=returnHigh)
+  View(weights6.1)
+  return(weights6.1)
 }
 
 ### Calculate returns for testing period
@@ -132,7 +135,7 @@ calc.weights = function(start, end, d, returnLow=0.05, returnHigh=0.15){
 # weights - matrix of weights
 # realloc - number of times to reallocate
 # capital - starting capital
-calc.return = function(start,end,weights,capital,realloc){
+calc.return = function(start,end,d,weights,capital,realloc){
   capital = rep(capital,nrow(weights))
   realloc = realloc + 1
   
@@ -158,9 +161,12 @@ calc.return = function(start,end,weights,capital,realloc){
     new_price = d %>% select(format(mid))
     # Change in stock prices for time period
     change = as.matrix((new_price - old_price)/old_price)+1
+    #View((new_price - old_price)/old_price)
+    #View(change)
+    #View(bought)
     # Returns for time period
     returns = (bought %*% change)
-    
+    #View(returns)
     # New capital
     capital = as.vector(returns)
     

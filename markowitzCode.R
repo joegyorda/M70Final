@@ -8,7 +8,7 @@ library(pracma)
 
 # gets the matrix of daily returns
 get.ret.mat = function(X) {
-  X = X[2:length(X)]
+  #X = X[2:length(X)]
   # first.date = names(X)[1]
   # last.date = names(X)[length(X)]
   # week.seq = seq(ymd(first.date), ymd(last.date), by="1 week")
@@ -16,7 +16,10 @@ get.ret.mat = function(X) {
   # week.seq = adjust.next(week.seq, 'QuantLib/UnitedStates/NYSE')
   # week.seq = as.character(week.seq)
   # X = X[week.seq]
-  X = as.matrix(X)
+  #X = as.matrix(X)
+  
+  #ret.mat = log(X[,2:dim(X)[2]]/X[,1:dim(X)[2] - 1])
+  
   ret.mat = (X[,2:dim(X)[2]] - X[,1:dim(X)[2] - 1]) / X[,1:dim(X)[2] - 1]
   return(ret.mat)
 }
@@ -34,7 +37,7 @@ inv = function(omega) {
 # finds the optimal a for interval allocation
 find.a = function(r,R,mu,omega, one){
   obj.func = function(a, mu, omega, p, P, C, Q) {
-    left.side = pnorm((P-a)/sqrt(C * (Q +a^2)))
+    left.side = pnorm((P-a)/sqrt(C*(Q+a^2)))
     right.side= pnorm((p-a)/sqrt(C*(Q+a^2)))
     return(left.side - right.side)
   }
@@ -47,7 +50,7 @@ find.a = function(r,R,mu,omega, one){
   P=(R*C-A)/D
   p=(r*C-A)/D
   Q=1/D
-  sol = optimize(obj.func,c((r*C-A)/D-100,(R*C-A)+100),mu, omega, p, P, C, Q, maximum=TRUE)
+  sol = optimize(obj.func,c(((r*C-A)/D),(R*C-A)),mu, omega, p, P, C, Q, maximum=TRUE)
   return(sol$maximum)
 }
 
@@ -72,7 +75,7 @@ markBullet = function(data, plotting=F) {
   omega = cor(t(ret.mat))
   omega.inv = solve(omega)
 
-  one = matrix(1, nrow=nrow(data))               # column vector of all 1's
+  one = matrix(1, nrow=nrow(data))          # column vector of all 1's
 
   A = as.single(t(mu)%*%omega.inv%*%one)
   B = as.single(t(mu)%*%omega.inv%*%mu)
