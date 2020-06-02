@@ -1,41 +1,37 @@
 graphing <- function(dates, int_port_returns,
-                     hca_returns, bullet_returns,cap) {
-  
-  dat_df <- data.frame(cbind(dates, int_port_returns, hca_returns, dates))
-  
-  colors <- c("Interval Portfolio" = "#58508d", "HCA" = "#ffa600", "Markowitz Bullet" = "#bc5090")
-  
-  return_plt <- ggplot() +
-    geom_line(data = dat_df, aes(x = dates, y = int_port_returns, color = "Interval Portfolio")) + geom_point() +
-    geom_line(data = dat_df, aes(x = dates, y = hca_returns, color = "HCA")) + geom_point() +
-    geom_line(data = dat_df, aes(x = dates, y = bullet_returns, color = "Markowitz Bullet")) + geom_point() +
-    labs(y = "Returns", x = "Dates", col = "Model", title = "Model Performance on 2013-2018 Stock Prices")+
-    theme_light() +  scale_color_manual(values = colors)
+                     hca_returns, bullet_returns, rand_returns, cap, title) {
   
   
-    final_rets <- c(int_port_returns[length(int_port_returns)], hca_returns[length(hca_returns)],
-                     bullet_returns[length(bullet_returns)])
-    nms = c("Interval Portfolio", 
-                  "HCA", "Markowitz Bullet")
-    
-    print(paste("At end of final testing period, returns for each model were:/n",
-                nms[1], ": ", final_rets[1],
-                nms[2], ": ", final_rets[2],
-                nms[3], ": ", final_rets[3]))
-    
-    best = c("Best Model", cap)
-    
-    if (int_port_returns[length(int_port_returns)] == max(final_rets)) {best = c("Interval Portfolio", int_port_returns[length(int_port_returns)]/cap)}
-    if (hca_returns[length(hca_returns)] == max(final_rets)) {best = c("Hierarchical Cluster Analysis", hca_returns[length(hca_returns)]/cap)}
-    if (bullet_returns[length(bullet_returns)] == max(final_rets)) {best = c("Markowitz Bullet", bullet_returns[length(bullet_returns)]/cap)}
-    return_plt
-    
-    print(paste("Highest Return at End of Testing Period Was", best[1], "with final ROI of", as.numeric(best[2])*100, "%"))
-    
-    print(paste("Other ROIs were", (final_rets[-which.max(final_rets)] * 100/cap)[1],"%", "for", nms[-which.max(final_rets)][1],"and",
-                "and", (final_rets[-which.max(final_rets)] * 100/cap)[2],"%", "for", nms[-which.max(final_rets)][2]) )
+  int_port_returns = ((int_port_returns/cap)-1) * 100
+  hca_returns = ((hca_returns/cap)-1) * 100
+  bullet_returns = ((bullet_returns/cap)-1)* 100
+  rand_returns = ((rand_returns/cap)-1) * 100
+  dates = as.Date.numeric(dates, origin = "1970-1-1")
 
+  #one dataframe of all relevant plotting data
+  dat_df <- data.frame(cbind(int_port_returns, hca_returns, bullet_returns))
+  
+  #colors for legend
+  colors <- c("Interval Portfolio" = "black", 
+              "HCA" = "purple", 
+              "Markowitz Bullet" = "#3FA7D6",
+              "Equal Allocation" = "#EE6352")
+  
+  return_plt <- ggplot(data = dat_df, aes(x = dates)) + 
+    geom_smooth(aes(y = int_port_returns, color = "Interval Portfolio"), se = FALSE) + 
+    geom_smooth(aes(y = hca_returns,color = "HCA"), se = FALSE) +
+    geom_smooth(aes(y = bullet_returns, color = "Markowitz Bullet"), se = FALSE) +
+    geom_smooth(aes(y = rand_returns, color = "Equal Allocation"), se = FALSE) +
     
+    geom_line(aes(y = int_port_returns, color = "Interval Portfolio", alpha = 0.2)) + 
+    geom_line(aes(y = hca_returns,color = "HCA", alpha = 0.2)) +
+    geom_line(aes(y = bullet_returns, color = "Markowitz Bullet"), alpha = 0.2) +
+    geom_line(aes(y = rand_returns, color = "Equal Allocation"), alpha = 0.2) +
+    scale_y_continuous(limits = c(-25, 50)) +
+    labs(y = "Returns (Percentage)", x = "Dates (2013 on)", 
+         col = "Model", title = "Performance by Model on 2013-2018 Stock Prices",
+         subtitle = title) +
+    scale_color_manual(values = colors) + theme_light() + scale_x_date() + scale_alpha(guide = 'none')
+  
+  show(return_plt)
 }
-
-graphing(c(1,2,3), c(50, 75, 100), c(25, 50, 75),c(25, 66, 125) , 1000)
