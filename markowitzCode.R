@@ -63,6 +63,7 @@ find.w = function(r,R,fmu,omega){
   }
   
   init = rep(1, length(fmu))/ length(fmu)
+  init = c(0.51,0.51, rep(0, length(mu)-2))
   rowones = t(rep(1, length(fmu)))
   ui = rbind(rowones,-diag(length(fmu)))
   ci = c(1, rep(-1, nrow(ui)-1))
