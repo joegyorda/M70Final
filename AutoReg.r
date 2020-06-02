@@ -5,8 +5,6 @@ X = as.matrix(X)
 
 n.dates=dim(X)[2];n.stocks=dim(X)[1]
 
-### Split by stocks here
-
 a = c(); b=c()
 # for every data point (date in data)
 flag = FALSE
