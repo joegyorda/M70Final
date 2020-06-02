@@ -12,6 +12,10 @@ source("markowitzCode.R")
 
 main = function(backtest=1,capital=100000){
   d = parse.data("all_stocks_5yr.csv")
+
+  indices = order(sample(1:nrow(d), 50))
+  d = d[indices,]
+
   returnsNoRealloc2 <- cross_val(backtest=1,d,capital,reall=0)
   returnsRealloc2 <- cross_val(backtest=1,d,capital,reall=1)
   returnsLong <- cross_val(backtest=2,d,capital,reall=10)
