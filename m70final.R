@@ -118,7 +118,6 @@ main = function(backtest=1,capital=100000){
            int_port_returns = short.3year.reall[3,],
            rand_returns = short.3year.reall[4,], 100000,
            "Rebalancing")
-
   ### Standard Deviations
   sds = matrix(rep(0,24), ncol=6)
   sds[,1] = rowSds(short.6month.noreall)
@@ -128,6 +127,17 @@ main = function(backtest=1,capital=100000){
   sds[,5] = rowSds(short.3year.noreall)
   sds[,6] = rowSds(short.3year.reall)
   print(sds)
+  
+  
+  ### Expected Returns
+  ev = matrix(rep(0,24), ncol=6)
+  ev[,1] = rowMeans(short.6month.noreall)
+  ev[,2] = rowMeans(short.6month.reall)
+  ev[,3] = rowMeans(short.2year.noreall)
+  ev[,4] = rowMeans(short.2year.reall)
+  ev[,5] = rowMeans(short.3year.noreall)
+  ev[,6] = rowMeans(short.3year.reall)
+  print(ev)
   }
 
 
@@ -192,6 +202,8 @@ cross_val = function(backtest=1, d, capital, reall){
       weights = calc.weights(starts.train[i], ends.train[i], d)
       returns = calc.return(starts.test[i], ends.test[i], d, weights, capital, reall)
       returnsTotal[,i]=returns
+      View(returns)
+      return()
     }
     return(returnsTotal)
   }
@@ -225,7 +237,7 @@ calc.weights = function(start, end, d){
   weights[2,] = markBullet(d %>% select(format(start):format(end)))
   weights[3,] = intervalPortfolio(d %>% select(format(start):format(end)), r=returnLow, R=returnHigh)
   weights[4,] = rep(1/nrow(d),nrow(d))
-
+  View(weights)
   return(weights)
 }
 
@@ -261,6 +273,8 @@ calc.return = function(start,end,d,weights,capital,realloc){
     new_price = d %>% select(format(mid))
     # Change in stock prices for time period
     change = as.matrix((new_price - old_price)/old_price)+1
+    
+    View(change)
     # Returns for time period
     returns = (bought %*% change)
     # New capital
