@@ -5,6 +5,7 @@ require(dplyr)
 require(tidyverse)
 require(lubridate)
 require(bizdays)
+require(matrixStats)
 source("markowitzCode.R")
 
 
@@ -19,11 +20,16 @@ main = function(backtest=1,capital=100000){
   
   ### Write Dates for testing
   #6month
-  write.csv(ends.test, file="end_dates_for_testing_6_month_period.csv")
+  dates.6.months = cross_val(backtest=1,d.sample,capital,reall=1)
+  write.csv(dates.6.months, file="end_dates_for_testing_6_month_period.csv")
   #longtest
-  write.csv(c(starts.test,ends.test), file="start_end_for_longtest")
+  dates.longtest = cross_val(backtest=2,d.sample,capital,reall=1)
+  write.csv(dates.longtest, file="start_end_for_longtest")
   #2year
-  write.csv(ends.test, file="end_dates_for_testing_2_year_period.csv")
+  dates.2.years = cross_val(backtest=1,d.sample,capital,reall=1)
+  write.csv(dates.2.years, file="end_dates_for_testing_2_year_period.csv")
+  #3year
+  dates.3.years = cross_val(backtest=1,d.sample,capital,reall=1)
     
   ### Write Stocks Used in Sample
   write.csv(row.names(d.6month), file="stocks_for_test.csv")
@@ -44,7 +50,11 @@ main = function(backtest=1,capital=100000){
   #2year - reallocation
   short.2year.reall <- cross_val(backtest=1,d.sample,capital,reall=1)
   write.csv(short.2year.reall,file="returns_2_years_for_sample_reallocation.csv")
-  
+  #3year - no reallocation
+  short.3year.noreall <- cross_val(backtest=1,d.sample,capital,reall=0)
+  #3year - reallocation
+  short.3year.reall <- cross_val(backtest=1,d.sample,capital,reall=1)
+    
   ### Create and Write Returns for Test with Entire DataSet
   #6month - no reallocation
   total.returns.noreall <- cross_val(backtest=1,d,capital,reall=0)
@@ -57,18 +67,66 @@ main = function(backtest=1,capital=100000){
   write.csv(total.returns.longtest,file="returns_long_test_for_total.csv")
   
   
-  ### Graphing
+  ### Graphing Sample
   #6month - no reallocation
+  graphing(dates.6.months,
+           hca_returns = short.6month.noreall[1,],
+           bullet_returns = short.6month.noreall[2,], 
+           int_port_returns = short.6month.noreall[3,],
+           rand_returns = short.6month.noreall[4,], 100000,
+           "No Rebalancing")
  
   #6month - reallocation
-
+  graphing(dates.6.months,
+           hca_returns = short.6month.reall[1,],
+           bullet_returns = short.6month.reall[2,], 
+           int_port_returns = short.6month.reall[3,],
+           rand_returns = short.6month.reall[4,], 100000,
+           "Rebalancing")
   #longtest
 
   #2year - no reallocation
+  graphing(dates.2.years,
+           hca_returns = short.2year.noreall[1,],
+           bullet_returns = short.2year.noreall[2,], 
+           int_port_returns = short.2year.noreall[3,],
+           rand_returns = short.2year.noreall[4,], 100000,
+           "No Rebalancing")
 
   #2year - reallocation
+  graphing(dates.2.years,
+           hca_returns = short.2year.reall[1,],
+           bullet_returns = short.2year.reall[2,], 
+           int_port_returns = short.2year.reall[3,],
+           rand_returns = short.2year.reall[4,], 100000,
+           "Rebalancing")
   
-}
+  #3year - no reallocation
+  graphing(dates.3.years,
+           hca_returns = short.3year.noreall[1,],
+           bullet_returns = short.3year.noreall[2,], 
+           int_port_returns = short.3year.noreall[3,],
+           rand_returns = short.3year.noreall[4,], 100000,
+           "No Rebalancing")
+  
+  #3year - reallocation
+  graphing(dates.3.years,
+           hca_returns = short.3year.reall[1,],
+           bullet_returns = short.3year.reall[2,], 
+           int_port_returns = short.3year.reall[3,],
+           rand_returns = short.3year.reall[4,], 100000,
+           "Rebalancing")
+
+  ### Standard Deviations
+  sds = matrix(rep(0,24), ncol=6)
+  sds[,1] = rowSds(short.6month.noreall)
+  sds[,2] = rowSds(short.6month.reall)
+  sds[,3] = rowSds(short.2year.noreall)
+  sds[,4] = rowSds(short.2year.reall)
+  sds[,5] = rowSds(short.3year.noreall)
+  sds[,6] = rowSds(short.3year.reall)
+  print(sds)
+  }
 
 
 ################  Data Parsing and Formatting  ################
@@ -99,7 +157,8 @@ cross_val = function(backtest=1, d, capital, reall){
   first = ymd(names(d)[2])
   #Determine last start date for training
   #last = ymd(names(d)[ncol(d)])-period(c(4,0,4), c("year","month","day"))
-  last = ymd(names(d)[ncol(d)])-months(12)
+  last = first+(period(c(11,29), c("month","day")))
+  #last = ymd(names(d)[ncol(d)])-months(12)
   callast = last + years(6)
   
   #Load biz calendar
@@ -114,12 +173,14 @@ cross_val = function(backtest=1, d, capital, reall){
     
     # End dates for training (also start dates for testing)
     # Add 6 months to start date, round to nearest NYSE business day
-    ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
+    #ends.train = add_with_rollback(starts.train, months(6), roll_to_first = TRUE)
+    ends.train = add_with_rollback(starts.train, years(1), roll_to_first = TRUE)
     #ends.train = add_with_rollback(starts.train, years(2), roll_to_first = TRUE)
     ends.train = adjust.next(ends.train,'QuantLib/UnitedStates/NYSE')
     
     starts.test = ends.train
-    ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
+    #ends.test = add_with_rollback(starts.test, months(6), roll_to_first = TRUE)
+    ends.test = add_with_rollback(starts.test, years(3), roll_to_first = TRUE)
     #ends.test = add_with_rollback(starts.test, years(2), roll_to_first = TRUE)
     ends.test = adjust.next(ends.test,'QuantLib/UnitedStates/NYSE')
     
@@ -286,7 +347,8 @@ graphing <- function(dates, int_port_returns,
   hca_returns = ((hca_returns/cap)-1) * 100
   bullet_returns = ((bullet_returns/cap)-1)* 100
   rand_returns = ((rand_returns/cap)-1) * 100
-  dates = as.Date.numeric(dates, origin = "1970-1-1")
+  dates = as.Date(dates, origin = "1970-1-1")
+  #dates = as.Date.numeric(dates, origin = "1970-1-1")
 
   #one dataframe of all relevant plotting data
   dat_df <- data.frame(cbind(int_port_returns, hca_returns, bullet_returns))
@@ -307,7 +369,7 @@ graphing <- function(dates, int_port_returns,
     geom_line(aes(y = hca_returns,color = "HCA", alpha = 0.2)) +
     geom_line(aes(y = bullet_returns, color = "Markowitz Bullet"), alpha = 0.2) +
     geom_line(aes(y = rand_returns, color = "Equal Allocation"), alpha = 0.2) +
-    scale_y_continuous(limits = c(-25, 50)) +
+    scale_y_continuous(limits = c(-10, 100)) +
     labs(y = "Returns (Percentage)", x = "Dates (2013 on)", 
          col = "Model", title = "Performance by Model on 2013-2018 Stock Prices",
          subtitle = title) +
