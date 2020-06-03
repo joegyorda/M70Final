@@ -52,8 +52,10 @@ main = function(backtest=1,capital=100000){
   write.csv(short.2year.reall,file="returns_2_years_for_sample_reallocation.csv")
   #3year - no reallocation
   short.3year.noreall <- cross_val(backtest=1,d.sample,capital,reall=0)
+  write.csv(short.3year.noreall,file="returns_3_years_for_sample_no_reallocation.csv")
   #3year - reallocation
   short.3year.reall <- cross_val(backtest=1,d.sample,capital,reall=1)
+  write.csv(short.3year.reall,file="returns_3_years_for_sample_reallocation.csv")
     
   ### Create and Write Returns for Test with Entire DataSet
   #6month - no reallocation
